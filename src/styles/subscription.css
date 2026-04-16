@@ -1,0 +1,167 @@
+/* ── Billing Toggle ──────────────────────────────────── */
+.billing-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 2rem;
+  justify-content: center;
+}
+.billing-toggle-label {
+  font-size: 14px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color var(--transition);
+}
+.billing-toggle-label.active { color: var(--text-primary); font-weight: 500; }
+
+.billing-save-badge {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--success-soft);
+  color: var(--success);
+  padding: 2px 7px;
+  border-radius: 100px;
+}
+
+.billing-toggle {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--border-md);
+  position: relative;
+  cursor: pointer;
+  border: none;
+  transition: background var(--transition);
+  flex-shrink: 0;
+}
+.billing-toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform var(--transition);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.billing-toggle-on { background: var(--accent); }
+.billing-toggle-on::after { transform: translateX(20px); }
+
+/* ── Plans Grid ──────────────────────────────────────── */
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  align-items: stretch;
+}
+
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding: 1.75rem;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.plan-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.plan-card-popular {
+  border: 2px solid var(--accent);
+}
+.plan-card-current {
+  border-color: var(--border-strong);
+}
+
+.plan-popular-badge {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 14px;
+  border-radius: 100px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.plan-icon-wrap {
+  width: 40px; height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 1rem;
+}
+.plan-card-popular .plan-icon-wrap {
+  background: var(--accent);
+  color: #fff;
+}
+
+.plan-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+.plan-price-amount {
+  font-size: 36px;
+  font-weight: 700;
+  font-family: 'Space Mono', monospace;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+}
+.plan-price-period {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.plan-billed-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.plan-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 1.25rem;
+}
+
+.plan-features {
+  list-style: none;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.plan-features li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+.plan-check {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+/* ── Enterprise Callout ──────────────────────────────── */
+.enterprise-callout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 1rem 1.25rem;
+}
