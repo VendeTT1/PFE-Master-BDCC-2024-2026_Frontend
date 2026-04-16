@@ -28,28 +28,42 @@ export default function AdminSubscriptions() {
     setFiltered(result)
   }, [subs, search, planFilter])
 
-  async function loadData() {
+  // async function loadData() {
+  //   setLoading(true)
+  //   // TODO: GET /api/admin/subscriptions
+  //   setTimeout(() => {
+  //     setSummary({
+  //       totalRevenue: 2831,
+  //       mrr: 2831,
+  //       growth: 12,
+  //       totalSubs: 6,
+  //       paidSubs: 4,
+  //     })
+  //     setSubs([
+  //       { id: 1, ownerName: 'John Smith',  ownerEmail: 'john@acme.com', plan: 'PRO',        billing: 'MONTHLY', amount: 19,  status: 'ACTIVE',   nextBilling: '2025-05-01', startDate: '2024-01-10' },
+  //       { id: 2, ownerName: 'Sara Lee',    ownerEmail: 'sara@beta.io',  plan: 'FREE',       billing: '—',       amount: 0,   status: 'ACTIVE',   nextBilling: '—',          startDate: '2024-02-14' },
+  //       { id: 3, ownerName: 'Ops Team',    ownerEmail: 'ops@gamma.com', plan: 'ENTERPRISE', billing: 'YEARLY',  amount: 490, status: 'ACTIVE',   nextBilling: '2025-01-05', startDate: '2024-01-05' },
+  //       { id: 4, ownerName: 'Dev Delta',   ownerEmail: 'dev@delta.net', plan: 'PRO',        billing: 'MONTHLY', amount: 19,  status: 'ACTIVE',   nextBilling: '2025-04-01', startDate: '2024-03-01' },
+  //       { id: 5, ownerName: 'Epsilon Co',  ownerEmail: 'hi@epsilon.io', plan: 'PRO',        billing: 'YEARLY',  amount: 190, status: 'CANCELLED',nextBilling: '—',          startDate: '2023-10-01' },
+  //       { id: 6, ownerName: 'Zeta Ltd',    ownerEmail: 'z@zeta.com',    plan: 'FREE',       billing: '—',       amount: 0,   status: 'ACTIVE',   nextBilling: '—',          startDate: '2024-03-15' },
+  //     ])
+  //     setLoading(false)
+  //   }, 500)
+  // }
+  
+  async function loadData(){
     setLoading(true)
-    // TODO: GET /api/admin/subscriptions
-    setTimeout(() => {
-      setSummary({
-        totalRevenue: 2831,
-        mrr: 2831,
-        growth: 12,
-        totalSubs: 6,
-        paidSubs: 4,
-      })
-      setSubs([
-        { id: 1, ownerName: 'John Smith',  ownerEmail: 'john@acme.com', plan: 'PRO',        billing: 'MONTHLY', amount: 19,  status: 'ACTIVE',   nextBilling: '2025-05-01', startDate: '2024-01-10' },
-        { id: 2, ownerName: 'Sara Lee',    ownerEmail: 'sara@beta.io',  plan: 'FREE',       billing: '—',       amount: 0,   status: 'ACTIVE',   nextBilling: '—',          startDate: '2024-02-14' },
-        { id: 3, ownerName: 'Ops Team',    ownerEmail: 'ops@gamma.com', plan: 'ENTERPRISE', billing: 'YEARLY',  amount: 490, status: 'ACTIVE',   nextBilling: '2025-01-05', startDate: '2024-01-05' },
-        { id: 4, ownerName: 'Dev Delta',   ownerEmail: 'dev@delta.net', plan: 'PRO',        billing: 'MONTHLY', amount: 19,  status: 'ACTIVE',   nextBilling: '2025-04-01', startDate: '2024-03-01' },
-        { id: 5, ownerName: 'Epsilon Co',  ownerEmail: 'hi@epsilon.io', plan: 'PRO',        billing: 'YEARLY',  amount: 190, status: 'CANCELLED',nextBilling: '—',          startDate: '2023-10-01' },
-        { id: 6, ownerName: 'Zeta Ltd',    ownerEmail: 'z@zeta.com',    plan: 'FREE',       billing: '—',       amount: 0,   status: 'ACTIVE',   nextBilling: '—',          startDate: '2024-03-15' },
-      ])
+    try{
+      const data = await api.get('/subscription/all')
+      setSubs(data)
+    } catch (error) {
+      console.error('Error fetching subscription data:', error)
+    } finally {
       setLoading(false)
-    }, 500)
+    }
   }
+
+
 
   function planBadgeClass(plan) {
     if (plan === 'ENTERPRISE') return 'badge-accent'
@@ -132,13 +146,13 @@ export default function AdminSubscriptions() {
           <table>
             <thead>
               <tr>
-                <th>Owner</th>
-                <th>Plan</th>
-                <th>Billing</th>
-                <th>Amount</th>
+                <th>Company</th>
+                <th>Plan Type</th>
                 <th>Status</th>
-                <th>Next Billing</th>
-                <th>Since</th>
+                <th>Start Date</th>
+                {/* <th>Amount</th> */}
+                <th>End Date</th>
+                {/* <th>Since</th> */}
                 <th></th>
               </tr>
             </thead>
@@ -146,22 +160,22 @@ export default function AdminSubscriptions() {
               {filtered.map(s => (
                 <tr key={s.id}>
                   <td>
-                    <div style={{ fontWeight: 500, fontSize: 13 }}>{s.ownerName}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.ownerEmail}</div>
+                    <div style={{ fontWeight: 500, fontSize: 13 }}>{s.companyName}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.userEmail}</div>
                   </td>
                   <td>
-                    <span className={`badge ${planBadgeClass(s.plan)}`} style={{ fontSize: 11 }}>{s.plan}</span>
+                    <span className={`badge ${planBadgeClass(s.plan)}`} style={{ fontSize: 11 }}>{s.planType}</span>
                   </td>
-                  <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{s.billing}</td>
+                  {/* <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{s.billing}</td>
                   <td style={{ fontFamily: "'Space Mono', monospace", fontSize: 13 }}>
                     {s.amount > 0 ? `$${s.amount}` : <span style={{ color: 'var(--text-muted)' }}>Free</span>}
-                  </td>
+                  </td> */}
                   <td>
                     <span className={`badge ${s.status === 'ACTIVE' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: 11 }}>
                       {s.status}
                     </span>
                   </td>
-                  <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.nextBilling}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.endDate}</td>
                   <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.startDate}</td>
                   <td>
                     <button className="btn btn-ghost btn-sm" title="Download invoice">
