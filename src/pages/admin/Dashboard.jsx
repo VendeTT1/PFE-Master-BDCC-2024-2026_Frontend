@@ -14,38 +14,54 @@ function StatusDot({ status }) {
 }
 
 export default function AdminDashboard() {
-  const [stats, setStats]           = useState(null)
-  const [recentInstances, setRI]    = useState([])
-  const [recentUsers, setRU]        = useState([])
-  const [loading, setLoading]       = useState(true)
+  const [stats, setStats] = useState(null)
+  const [recentInstances, setRI] = useState([])  // State for recent instances
+  const [recentUsers, setRU] = useState([])  // State for recent users
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // TODO: GET /api/admin/dashboard
     setTimeout(() => {
       setStats({
-        totalUsers:        142,
-        totalInstances:    87,
-        activeInstances:   64,
-        monthlyRevenue:    2831,
-        revenueGrowth:     12,
-        pendingIssues:     3,
+        totalUsers: 142,
+        totalInstances: 87,
+        activeInstances: 64,
+        monthlyRevenue: 2831,
+        revenueGrowth: 12,
+        pendingIssues: 3,
       })
-      setRI([
-        { id: 10, name: 'Acme Corp DB',      owner: 'john@acme.com',  status: 'RUNNING', region: 'us-east-1' },
-        { id: 11, name: 'Beta Server',       owner: 'sara@beta.io',   status: 'STOPPED', region: 'eu-central-1' },
-        { id: 12, name: 'Gamma Production',  owner: 'ops@gamma.com',  status: 'RUNNING', region: 'us-west-2' },
-        { id: 13, name: 'Delta Worker',      owner: 'dev@delta.net',  status: 'PENDING', region: 'ap-southeast-1' },
-      ])
-      setRU([
-        { id: 1, name: 'John Smith',   email: 'john@acme.com',  plan: 'PRO',        instances: 3, joinedAt: '2024-01-10' },
-        { id: 2, name: 'Sara Lee',     email: 'sara@beta.io',   plan: 'FREE',       instances: 1, joinedAt: '2024-02-14' },
-        { id: 3, name: 'Ops Team',     email: 'ops@gamma.com',  plan: 'ENTERPRISE', instances: 8, joinedAt: '2024-01-05' },
-        { id: 4, name: 'Dev Delta',    email: 'dev@delta.net',  plan: 'PRO',        instances: 2, joinedAt: '2024-03-01' },
-      ])
       setLoading(false)
+      loadInstances()  // Call loadInstances after mock data is set
+      loadUsers()  // Call loadUsers to fetch recent users  
     }, 500)
   }, [])
 
+  async function loadInstances() {
+    setLoading(true)
+    try {
+      // Log the API response to check if data is being fetched correctly
+      const data = await api.get('/instances/allInstances')
+
+      // Slice the first 4 items from the response data and update state
+      setRI(data.slice(-4))  // Update recentInstances with the first 4 records
+    } catch (error) {
+      console.error('Error loading instances:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+    async function loadUsers() {
+      setLoading(true)
+      try {
+        // GET /api/company/users → UserResponseDTO[] { id, email, firstName, lastName, role, status }
+        const data = await api.get('/admin/allUsers')
+        setRU(data.slice(-4))
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
   if (loading) {
     return <Layout><div className="empty-state"><p>Loading admin dashboard...</p></div></Layout>
   }
@@ -59,46 +75,7 @@ export default function AdminDashboard() {
 
       {/* Stats */}
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-        <div className="stat-card">
-          <div className="stat-icon"><Users size={18} /></div>
-          <div className="stat-label">Total Users</div>
-          <div className="stat-value">{stats.totalUsers}</div>
-          <div className="stat-sub">Owners &amp; staff</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon"><Server size={18} /></div>
-          <div className="stat-label">All Instances</div>
-          <div className="stat-value">{stats.totalInstances}</div>
-          <div className="stat-sub">{stats.activeInstances} active</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>
-            <Activity size={18} />
-          </div>
-          <div className="stat-label">Active Instances</div>
-          <div className="stat-value">{stats.activeInstances}</div>
-          <div className="stat-sub">
-            {Math.round((stats.activeInstances / stats.totalInstances) * 100)}% uptime rate
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--info-soft)', color: 'var(--info)' }}>
-            <CreditCard size={18} />
-          </div>
-          <div className="stat-label">Monthly Revenue</div>
-          <div className="stat-value" style={{ fontSize: 22 }}>${stats.monthlyRevenue.toLocaleString()}</div>
-          <div className="stat-sub" style={{ color: 'var(--success)' }}>
-            +{stats.revenueGrowth}% vs last month
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
-            <AlertTriangle size={18} />
-          </div>
-          <div className="stat-label">Open Issues</div>
-          <div className="stat-value">{stats.pendingIssues}</div>
-          <div className="stat-sub">Needs attention</div>
-        </div>
+        {/* Individual stats cards */}
       </div>
 
       {/* Two-column lower section */}
@@ -124,8 +101,8 @@ export default function AdminDashboard() {
               <tbody>
                 {recentInstances.map(inst => (
                   <tr key={inst.id}>
-                    <td style={{ fontWeight: 500, fontSize: 13 }}>{inst.name}</td>
-                    <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{inst.owner}</td>
+                    <td style={{ fontWeight: 500, fontSize: 13 }}>{inst.nameInstance}</td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{inst.userEmail}</td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{inst.region}</td>
                     <td>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -153,24 +130,26 @@ export default function AdminDashboard() {
               <thead>
                 <tr>
                   <th>User</th>
-                  <th>Plan</th>
-                  <th>Instances</th>
+                  <th>Status</th>
+                  <th>Role</th>
                 </tr>
               </thead>
               <tbody>
                 {recentUsers.map(u => (
                   <tr key={u.id}>
                     <td>
-                      <div style={{ fontWeight: 500, fontSize: 13 }}>{u.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.email}</div>
+                   <div>
+                        <div style={{ fontWeight: 500, fontSize: 13 }}>{u.firstName} {u.lastName}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.email}</div>
+                      </div>
                     </td>
                     <td>
-                      <span className={`badge ${u.plan === 'ENTERPRISE' ? 'badge-accent' : u.plan === 'PRO' ? 'badge-info' : 'badge-warning'}`}
+                      <span className={`badge ${u.status === 'ACTIVE' ? 'badge-success' : u.status === 'INACTIVE' ? 'badge-info' : 'badge-warning'}`}
                         style={{ fontSize: 11 }}>
-                        {u.plan}
+                        {u.status}
                       </span>
                     </td>
-                    <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{u.instances}</td>
+                    <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{u.userRole}</td>
                   </tr>
                 ))}
               </tbody>

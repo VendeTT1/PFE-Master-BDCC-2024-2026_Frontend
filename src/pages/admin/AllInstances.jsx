@@ -69,9 +69,8 @@ export default function AdminInstances() {
     } finally {
       setLoading(false)
     }
-
-
   }
+
   async function handleAction(id, action) {
     setAL(prev => ({ ...prev, [id]: action }))
     try {
