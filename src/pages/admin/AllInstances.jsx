@@ -43,22 +43,35 @@ export default function AdminInstances() {
     setFiltered(result)
   }, [instances, search, statusFilter])
 
-  async function loadInstances() {
-    setLoading(true)
-    // TODO: GET /api/admin/instances
-    setTimeout(() => {
-      setInstances([
-        { id: 1,  name: 'Acme Production',   owner: 'john@acme.com',  ownerName: 'John Smith',  type: 'Database', region: 'us-east-1',     status: 'RUNNING', uptime: '99.9%', url: 'https://acme.odoo.com'   },
-        { id: 2,  name: 'Beta API Server',   owner: 'sara@beta.io',   ownerName: 'Sara Lee',    type: 'Server',   region: 'eu-central-1',  status: 'STOPPED', uptime: '0%',    url: null                      },
-        { id: 3,  name: 'Gamma Worker',      owner: 'ops@gamma.com',  ownerName: 'Ops Team',    type: 'Server',   region: 'us-west-2',     status: 'RUNNING', uptime: '99.1%', url: null                      },
-        { id: 4,  name: 'Delta Cache',       owner: 'dev@delta.net',  ownerName: 'Dev Delta',   type: 'Database', region: 'ap-southeast-1',status: 'PENDING', uptime: '—',     url: null                      },
-        { id: 5,  name: 'Epsilon Storage',   owner: 'ops@gamma.com',  ownerName: 'Ops Team',    type: 'Cloud',    region: 'us-east-1',     status: 'RUNNING', uptime: '100%',  url: null                      },
-        { id: 6,  name: 'Zeta Dev',          owner: 'john@acme.com',  ownerName: 'John Smith',  type: 'Server',   region: 'us-west-2',     status: 'STOPPED', uptime: '0%',    url: null                      },
-      ])
-      setLoading(false)
-    }, 500)
-  }
+  // async function loadInstances() {
+  //   setLoading(true)
+  //   // TODO: GET /api/admin/instances
+  //   setTimeout(() => {
+  //     setInstances([
+  //       { id: 1,  name: 'Acme Production',   owner: 'john@acme.com',  ownerName: 'John Smith',  type: 'Database', region: 'us-east-1',     status: 'RUNNING', uptime: '99.9%', url: 'https://acme.odoo.com'   },
+  //       { id: 2,  name: 'Beta API Server',   owner: 'sara@beta.io',   ownerName: 'Sara Lee',    type: 'Server',   region: 'eu-central-1',  status: 'STOPPED', uptime: '0%',    url: null                      },
+  //       { id: 3,  name: 'Gamma Worker',      owner: 'ops@gamma.com',  ownerName: 'Ops Team',    type: 'Server',   region: 'us-west-2',     status: 'RUNNING', uptime: '99.1%', url: null                      },
+  //       { id: 4,  name: 'Delta Cache',       owner: 'dev@delta.net',  ownerName: 'Dev Delta',   type: 'Database', region: 'ap-southeast-1',status: 'PENDING', uptime: '—',     url: null                      },
+  //       { id: 5,  name: 'Epsilon Storage',   owner: 'ops@gamma.com',  ownerName: 'Ops Team',    type: 'Cloud',    region: 'us-east-1',     status: 'RUNNING', uptime: '100%',  url: null                      },
+  //       { id: 6,  name: 'Zeta Dev',          owner: 'john@acme.com',  ownerName: 'John Smith',  type: 'Server',   region: 'us-west-2',     status: 'STOPPED', uptime: '0%',    url: null                      },
+  //     ])
+  //     setLoading(false)
+  //   }, 500)
+  // }
 
+  async function loadInstances(){
+    setLoading(true)
+    try{
+      const data = await api.get('/instances/allInstances')
+      setInstances(data)
+    } catch (error) {
+      console.error('Error loading instances:', error)
+    } finally {
+      setLoading(false)
+    }
+
+
+  }
   async function handleAction(id, action) {
     setAL(prev => ({ ...prev, [id]: action }))
     try {
@@ -126,9 +139,9 @@ export default function AdminInstances() {
               <tr>
                 <th>Instance</th>
                 <th>Owner</th>
-                <th>Type</th>
+                {/* <th>Type</th> */}
                 <th>Region</th>
-                <th>Uptime</th>
+                {/* <th>Uptime</th> */}
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -139,16 +152,16 @@ export default function AdminInstances() {
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Server size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                      <span style={{ fontWeight: 500, fontSize: 13 }}>{inst.name}</span>
+                      <span style={{ fontWeight: 500, fontSize: 13 }}>{inst.nameInstance}</span>
                     </div>
                   </td>
                   <td>
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>{inst.ownerName}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{inst.owner}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>{inst.userEmail}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{inst.firstName} {inst.lastName}</div>
                   </td>
-                  <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{inst.type}</td>
+                  {/* <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{inst.type}</td> */}
                   <td style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: "'Space Mono', monospace" }}>{inst.region}</td>
-                  <td style={{ fontSize: 13, fontFamily: "'Space Mono', monospace" }}>{inst.uptime}</td>
+                  {/* <td style={{ fontSize: 13, fontFamily: "'Space Mono', monospace" }}>{inst.uptime}</td> */}
                   <td>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <StatusDot status={inst.status} />
