@@ -28,7 +28,7 @@ export default function AdminUsers() {
     setLoading(true)
     try {
       // GET /api/company/users → UserResponseDTO[] { id, email, firstName, lastName, role, status }
-      const data = await api.get('/company/users')
+      const data = await api.get('/admin/allUsers')
       setUsers(data || [])
     } catch (err) {
       setError(err.message)
@@ -37,12 +37,12 @@ export default function AdminUsers() {
     }
   }
 
-  async function handleDelete(userId) {
+  async function handleDelete(id) {
     if (!window.confirm('Remove this user from the company?')) return
     try {
       // DELETE /api/company/users/{id}
-      await api.del(`/company/users/${userId}`)
-      setUsers(prev => prev.filter(u => u.id !== userId))
+      await api.del(`/admin/user/${id}`)
+      setUsers(prev => prev.filter(u => u.id !== id))
     } catch (err) {
       setError(err.message)
     }
@@ -101,9 +101,9 @@ export default function AdminUsers() {
                     </div>
                   </td>
                   <td>
-                    <span className={`badge ${u.role?.includes('ADMIN') ? 'badge-accent' : u.role?.includes('OWNER') ? 'badge-info' : 'badge-warning'}`}
+                    <span className={`badge ${u.userRole?.includes('ADMIN') ? 'badge-accent' : u.userRole?.includes('OWNER') ? 'badge-info' : 'badge-warning'}`}
                       style={{ fontSize: 11 }}>
-                      {u.role?.replace('ROLE_', '') || '—'}
+                      {u.userRole?.replace('ROLE_', '') || '—'}
                     </span>
                   </td>
                   <td>
