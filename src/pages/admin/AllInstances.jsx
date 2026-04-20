@@ -74,15 +74,11 @@ export default function AdminInstances() {
   async function handleAction(id, action) {
     setAL(prev => ({ ...prev, [id]: action }))
     try {
-      // TODO: POST /api/admin/instances/{id}/{action}
-      await new Promise(r => setTimeout(r, 700))
-      setInstances(prev => prev.map(i => {
-        if (i.id !== id) return i
-        if (action === 'start')   return { ...i, status: 'RUNNING' }
-        if (action === 'stop')    return { ...i, status: 'STOPPED' }
-        if (action === 'restart') return { ...i, status: 'RUNNING' }
-        return i
-      }))
+      // POST /api/instances/{id}/start | stop | restart
+      await api.post(`/instances/${id}/${action}`)
+      await loadInstances()
+    } catch (err) {
+      setError(err.message)
     } finally {
       setAL(prev => ({ ...prev, [id]: null }))
     }

@@ -10,6 +10,7 @@ export default function ProfilePage() {
   // Company info from GET /api/company
   const [company, setCompany]         = useState(null)
   const [companyLoading, setCL]       = useState(true)
+  const [profileData, setProfileData] = useState(null) 
 
   // Company update form
   const [companyForm, setCompanyForm] = useState({ name: '', region: '' })
@@ -29,7 +30,9 @@ export default function ProfilePage() {
       try {
         // GET /api/company → CompanyResponseDTO { id, name, region, ownerEmail, usersCount }
         const data = await api.get('/company')
+        const userData = await api.get('/company/user')
         setCompany(data)
+        setProfileData(userData)
         setCompanyForm({ name: data.name || '', region: data.region || '' })
       } catch (err) {
         setCE(err.message)
@@ -39,6 +42,8 @@ export default function ProfilePage() {
     }
     loadCompany()
   }, [])
+
+   const displayUser = profileData || {} 
 
   async function handleCompanySave(e) {
     e.preventDefault()
@@ -98,11 +103,11 @@ export default function ProfilePage() {
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: '1rem' }}>Account Info</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { label: 'Email',      value: user?.email },
-                { label: 'First name', value: user?.firstName },
-                { label: 'Last name',  value: user?.lastName },
-                { label: 'Role',       value: user?.role },
-                { label: 'Status',     value: user?.status },
+                { label: 'Email',      value: displayUser.email },
+                { label: 'First name', value: displayUser.firstName },
+                { label: 'Last name',  value: displayUser.lastName },
+                { label: 'Role',       value: displayUser.role },
+                { label: 'Status',     value: displayUser.status },
               ].map(({ label, value }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span className="label" style={{ marginBottom: 0 }}>{label}</span>

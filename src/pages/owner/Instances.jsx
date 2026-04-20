@@ -12,7 +12,7 @@ function StatusDot({ status }) {
 }
 
 export default function InstancesPage() {
-  const [instances, setInstances]   = useState([])
+  const [instance, setInstances]   = useState([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState('')
   const [showAdd, setShowAdd]       = useState(false)
@@ -24,8 +24,8 @@ export default function InstancesPage() {
     setLoading(true)
     try {
       // GET /api/instances → InstanceResponseDTO[] { id, name, url, status }
-      const data = await api.get('/instances')
-      setInstances(data || [])
+      const data = await api.get('/instances/userInstance')
+      setInstances(data || null)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -88,7 +88,7 @@ async function handleOpenInstance(id) {
 
       {loading ? (
         <div className="empty-state"><Loader size={24} className="spin" /></div>
-      ) : instances.length === 0 ? (
+      ) : instance.length === 0 ? (
         <div className="card empty-state">
           <Server size={40} />
           <h3>No instances yet</h3>
@@ -96,59 +96,59 @@ async function handleOpenInstance(id) {
         </div>
       ) : (
         <div className="instances-grid">
-          {instances.map(inst => (
-            <div key={inst.id} className="card instance-card">
+          {/* {instances.map(inst => ( */}
+            <div key={instance.id} className="card instance-card">
               <div className="ic-header">
                 <div className="ic-icon-wrap"><Server size={20} /></div>
                 <div className="ic-meta">
-                  <div className="ic-name">{inst.name}</div>
-                  <div className="ic-type">ID #{inst.id}</div>
+                  <div className="ic-name">{instance.nameInstance}</div>
+                  <div className="ic-type">ID #{instance.id}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-                  <StatusDot status={inst.status} />
+                  <StatusDot status={instance.status} />
                 </div>
               </div>
 
               <div className="ic-stats">
                 <div className="ic-stat">
                   <span className="ic-stat-label">Status</span>
-                  <span className={`badge ${inst.status === 'RUNNING' ? 'badge-success' : inst.status === 'STOPPED' ? 'badge-danger' : 'badge-warning'}`}
-                    style={{ fontSize: 11 }}>{inst.status}</span>
+                  <span className={`badge ${instance.status === 'RUNNING' ? 'badge-success' : instance.status === 'STOPPED' ? 'badge-danger' : 'badge-warning'}`}
+                    style={{ fontSize: 11 }}>{instance.status}</span>
                 </div>
                 <div className="ic-stat">
                   <span className="ic-stat-label">URL</span>
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {inst.url ? 'Available' : 'Not set'}
+                    {instance.url ? 'Available' : 'Not set'}
                   </span>
                 </div>
               </div>
 
               <div className="ic-actions">
                 <button className="btn btn-secondary btn-sm"
-                  disabled={inst.status === 'RUNNING' || !!actionLoading[inst.id]}
-                  onClick={() => handleAction(inst.id, 'start')}>
+                  disabled={instance.status === 'RUNNING' || !!actionLoading[instance.id]}
+                  onClick={() => handleAction(instance.id, 'start')}>
                   <Play size={13} />
-                  {actionLoading[inst.id] === 'start' ? 'Starting…' : 'Start'}
+                  {actionLoading[instance.id] === 'start' ? 'Starting…' : 'Start'}
                 </button>
                 <button className="btn btn-secondary btn-sm"
-                  disabled={inst.status === 'STOPPED' || !!actionLoading[inst.id]}
-                  onClick={() => handleAction(inst.id, 'stop')}>
+                  disabled={instance.status === 'STOPPED' || !!actionLoading[instance.id]}
+                  onClick={() => handleAction(instance.id, 'stop')}>
                   <Square size={13} />
-                  {actionLoading[inst.id] === 'stop' ? 'Stopping…' : 'Stop'}
+                  {actionLoading[instance.id] === 'stop' ? 'Stopping…' : 'Stop'}
                 </button>
                 <button className="btn btn-secondary btn-sm"
-                  disabled={!!actionLoading[inst.id]}
-                  onClick={() => handleAction(inst.id, 'restart')}>
-                  <RotateCcw size={13} className={actionLoading[inst.id] === 'restart' ? 'spin' : ''} />
-                  {actionLoading[inst.id] === 'restart' ? 'Restarting…' : 'Restart'}
+                  disabled={!!actionLoading[instance.id]}
+                  onClick={() => handleAction(instance.id, 'restart')}>
+                  <RotateCcw size={13} className={actionLoading[instance.id] === 'restart' ? 'spin' : ''} />
+                  {actionLoading[instance.id] === 'restart' ? 'Restarting…' : 'Restart'}
                 </button>
                 <button className="btn btn-primary btn-sm" style={{ marginLeft: 'auto' }}
-                  onClick={() => handleOpenInstance(inst.id)}>
+                  onClick={() => handleOpenInstance(instance.id)}>
                   <ExternalLink size={13} /> Open
                 </button>
               </div>
             </div>
-          ))}
+          {/* ))} */}
 
           {/* Add card */}
           <div className="card instance-card instance-card-add" onClick={() => setShowAdd(true)}>

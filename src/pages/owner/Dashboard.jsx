@@ -12,11 +12,11 @@ function StatusDot({ status }) {
 
 export default function OwnerDashboard() {
   const { user } = useAuth()
-  const [instances, setInstances]     = useState([])
+  const [instance, setInstance]         = useState(null)   // single object, not array
   const [subscription, setSubscription] = useState(null)
-  const [loading, setLoading]         = useState(true)
-  const [error, setError]             = useState('')
-  const [actionLoading, setAL]        = useState({})
+  const [loading, setLoading]           = useState(true)
+  const [error, setError]               = useState('')
+  const [actionLoading, setAL]          = useState({})
 
   useEffect(() => { loadData() }, [])
 
@@ -24,13 +24,15 @@ export default function OwnerDashboard() {
     setLoading(true)
     setError('')
     try {
-      // GET /api/instances  → InstanceResponseDTO[]  { id, name, url, status }
-      // GET /api/subscription → SubscriptionResponseDTO { planType, status, startDate, endDate }
+      // GET /api/instances/userInstance
+      // Response: single InstanceResponseDTO {
+      //   id, firstName, lastName, nameInstance, region, status, url, userEmail
+      // }
       const [inst, sub] = await Promise.all([
-        api.get('/instances'),
+        api.get('/instances/userInstance'),
         api.get('/subscription').catch(() => null),
       ])
-      setInstances(inst || [])
+      setInstance(inst || null)
       setSubscription(sub)
     } catch (err) {
       setError(err.message)
@@ -42,9 +44,8 @@ export default function OwnerDashboard() {
   async function handleAction(id, action) {
     setAL(prev => ({ ...prev, [id]: action }))
     try {
-      // POST /api/instances/{id}/start | stop | restart
       await api.post(`/instances/${id}/${action}`)
-      await loadData() // refresh list
+      await loadData()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -53,29 +54,21 @@ export default function OwnerDashboard() {
   }
 
   async function handleOpenInstance(id) {
-  try {
-    // GET /api/instances/{id}/access → plain string URL in the response
-    const response = await api.get(`/instances/${id}/access`);
-
-    // Extracting the access URL from the response object
-    const url = response.accessURL;
-
-    // Open the access URL in a new tab
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');  // '_blank' opens in a new tab
-    } else {
-      console.error('Access URL not found in the response');
+    try {
+      const response = await api.get(`/instances/${id}/access`)
+      const url = response?.accessURL || response?.url || response
+      if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer')
+      } else {
+        setError('Access URL not found in response.')
+      }
+    } catch (err) {
+      setError('Could not get instance URL: ' + err.message)
     }
-  } catch (err) {
-    console.error('Error fetching access URL:', err.message);
-    setError('Could not get instance URL: ' + err.message);
   }
-}
 
-  const running = instances.filter(i => i.status === 'RUNNING').length
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'there'
 
-  // Days left in subscription
   const daysLeft = subscription?.endDate
     ? Math.max(0, Math.ceil((new Date(subscription.endDate) - new Date()) / 86400000))
     : null
@@ -86,35 +79,50 @@ export default function OwnerDashboard() {
     <Layout>
       <div className="page-header">
         <h1>Good morning, {firstName} 👋</h1>
-        <p>Here's what's happening with your Odoo instances today.</p>
+        <p>Here's what's happening with your Odoo instance today.</p>
       </div>
 
-      {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}><AlertCircle size={15} /> {error}</div>}
+      {error && (
+        <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>
+          <AlertCircle size={15} /> {error}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon"><Server size={18} /></div>
-          <div className="stat-label">Total Instances</div>
-          <div className="stat-value">{instances.length}</div>
-          <div className="stat-sub">{running} running</div>
+          <div className="stat-label">Instance</div>
+          <div className="stat-value" style={{ fontSize: 18 }}>
+            {instance?.nameInstance || '—'}
+          </div>
+          <div className="stat-sub">Region: {instance?.region || '—'}</div>
         </div>
+
         <div className="stat-card">
           <div className="stat-icon" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>
             <Activity size={18} />
           </div>
-          <div className="stat-label">Running</div>
-          <div className="stat-value">{running}</div>
-          <div className="stat-sub">of {instances.length} total</div>
+          <div className="stat-label">Status</div>
+          <div className="stat-value" style={{ fontSize: 18 }}>
+            {instance?.status || '—'}
+          </div>
+          <div className="stat-sub">
+            {instance?.status === 'RUNNING' ? 'Instance is live' : 'Instance is offline'}
+          </div>
         </div>
+
         <div className="stat-card">
           <div className="stat-icon" style={{ background: 'var(--info-soft)', color: 'var(--info)' }}>
             <CreditCard size={18} />
           </div>
           <div className="stat-label">Current Plan</div>
-          <div className="stat-value" style={{ fontSize: 18 }}>{subscription?.planType || '—'}</div>
+          <div className="stat-value" style={{ fontSize: 18 }}>
+            {subscription?.planType || '—'}
+          </div>
           <div className="stat-sub">{subscription?.status || 'No subscription'}</div>
         </div>
+
         {daysLeft !== null && (
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
@@ -123,68 +131,83 @@ export default function OwnerDashboard() {
             <div className="stat-label">Days Left</div>
             <div className="stat-value">{daysLeft}</div>
             <div className="stat-sub">
-              Ends {subscription?.endDate ? new Date(subscription.endDate).toLocaleDateString() : '—'}
+              Ends {new Date(subscription.endDate).toLocaleDateString()}
             </div>
           </div>
         )}
       </div>
 
-      {/* Instances */}
+      {/* Instance card */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600 }}>Your Instances</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 600 }}>Your Instance</h2>
         <Link to="/instances" className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          View all <ArrowRight size={14} />
+          Manage <ArrowRight size={14} />
         </Link>
       </div>
 
-      {instances.length === 0 ? (
+      {!instance ? (
         <div className="card empty-state">
           <Server size={36} />
-          <h3>No instances yet</h3>
+          <h3>No instance yet</h3>
           <p>Go to Instances to create your first Odoo deployment.</p>
         </div>
       ) : (
-        <div className="dashboard-instances-grid">
-          {instances.slice(0, 4).map(inst => (
-            <div key={inst.id} className="card dashboard-instance-card">
-              <div className="dic-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Server size={18} style={{ color: 'var(--text-muted)' }} />
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{inst.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>ID #{inst.id}</div>
-                  </div>
+        <div className="card dashboard-instance-card">
+          <div className="dic-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Server size={18} style={{ color: 'var(--text-muted)' }} />
+              <div>
+                {/* nameInstance is the correct field from the API */}
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{instance.nameInstance}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  {instance.userEmail} · {instance.region}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <StatusDot status={inst.status} />
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
-                    {inst.status}
-                  </span>
-                </div>
-              </div>
-              <div className="dic-actions">
-                <button className="btn btn-ghost btn-sm" title="Start"
-                  disabled={inst.status === 'RUNNING' || actionLoading[inst.id]}
-                  onClick={() => handleAction(inst.id, 'start')}>
-                  <Play size={13} />
-                </button>
-                <button className="btn btn-ghost btn-sm" title="Stop"
-                  disabled={inst.status === 'STOPPED' || actionLoading[inst.id]}
-                  onClick={() => handleAction(inst.id, 'stop')}>
-                  <Square size={13} />
-                </button>
-                <button className="btn btn-ghost btn-sm" title="Restart"
-                  disabled={!!actionLoading[inst.id]}
-                  onClick={() => handleAction(inst.id, 'restart')}>
-                  <RotateCcw size={13} className={actionLoading[inst.id] === 'restart' ? 'spin' : ''} />
-                </button>
-                <button className="btn btn-secondary btn-sm" style={{ marginLeft: 'auto' }}
-                  onClick={() => handleOpenInstance(inst.id)}>
-                  <ExternalLink size={13} /> Open
-                </button>
               </div>
             </div>
-          ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <StatusDot status={instance.status} />
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                {instance.status}
+              </span>
+            </div>
+          </div>
+
+          <div className="dic-actions">
+            <button
+              className="btn btn-ghost btn-sm"
+              title="Start"
+              disabled={instance.status === 'RUNNING' || !!actionLoading[instance.id]}
+              onClick={() => handleAction(instance.id, 'start')}
+            >
+              <Play size={13} />
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              title="Stop"
+              disabled={instance.status === 'STOPPED' || !!actionLoading[instance.id]}
+              onClick={() => handleAction(instance.id, 'stop')}
+            >
+              <Square size={13} />
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              title="Restart"
+              disabled={!!actionLoading[instance.id]}
+              onClick={() => handleAction(instance.id, 'restart')}
+            >
+              <RotateCcw
+                size={13}
+                className={actionLoading[instance.id] === 'restart' ? 'spin' : ''}
+              />
+            </button>
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ marginLeft: 'auto' }}
+              onClick={() => handleOpenInstance(instance.id)}
+            >
+              <ExternalLink size={13} /> Open
+            </button>
+          </div>
         </div>
       )}
     </Layout>
