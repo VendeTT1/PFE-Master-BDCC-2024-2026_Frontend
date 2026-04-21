@@ -9,32 +9,43 @@ import '../../styles/admin.css'
 export default function StaffRedirect() {
   const { user, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
-  const [instances, setInstances] = useState([])
+  const [instance, setInstances] = useState([])
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState('')
 
   useEffect(() => {
-    async function loadInstances() {
-      try {
-        // GET /api/instances — staff sees their assigned instances
-        const data = await api.get('/instances')
-        setInstances(data || [])
-      } catch (err) {
-        setError('Could not load your instance. Please contact your administrator.')
-      } finally {
-        setLoading(false)
-      }
+     async function loadInstances() {
+    setLoading(true)
+    try {
+      // GET /api/instances → InstanceResponseDTO[] { id, name, url, status }
+      const data = await api.get('/instances/userInstance')
+      setInstances(data || null)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
+  }
     loadInstances()
   }, [])
 
-  async function handleOpen(id) {
+   async function handleOpenInstance(id) {
     try {
-      // GET /api/instances/{id}/access → string URL
-      const url = await api.get(`/instances/${id}/access`)
-      if (url) window.open(url, '_blank', 'noopener,noreferrer')
-    } catch {
-      setError('Could not retrieve instance URL.')
+      // GET /api/instances/{id}/access → plain string URL in the response
+      const response = await api.get(`/instances/${id}/access`);
+
+      // Extracting the access URL from the response object
+      const url = response.accessURL;
+
+      // Open the access URL in a new tab
+      if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer');  // '_blank' opens in a new tab
+      } else {
+        console.error('Access URL not found in the response');
+      }
+    } catch (err) {
+      console.error('Error fetching access URL:', err.message);
+      setError('Could not get instance URL: ' + err.message);
     }
   }
 
@@ -44,7 +55,7 @@ export default function StaffRedirect() {
   }
 
   const initials = user
-    ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || '??'
+    ? `${user.firstName || ''}${user.lastName || ''}`.toUpperCase() || '??'
     : '??'
 
   return (
@@ -65,7 +76,7 @@ export default function StaffRedirect() {
             color: '#fff', fontFamily: "'Space Mono', monospace", fontSize: 20, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>M</div>
           <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 4 }}>
-            Welcome, {user?.firstName || 'there'}
+            Welcome, {user.firstName || 'there'}
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
             Select your instance to get started.
@@ -80,11 +91,11 @@ export default function StaffRedirect() {
             color: '#fff', fontSize: 13, fontWeight: 600,
             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{initials}</div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 500 }}>{user?.firstName} {user?.lastName}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{user?.email}</div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{user.firstName} {user.lastName}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{user.email}</div>
           </div>
           <span className="badge badge-info" style={{ marginLeft: 'auto', fontSize: 11 }}>
-            {user?.role?.replace('ROLE_', '') || 'STAFF'}
+            {user.role.replace('ROLE_', '') || 'STAFF'}
           </span>
         </div>
 
@@ -98,19 +109,19 @@ export default function StaffRedirect() {
             <Loader size={20} className="spin" style={{ margin: '0 auto' }} />
             <p style={{ marginTop: 8, fontSize: 13 }}>Loading your instance…</p>
           </div>
-        ) : instances.length === 0 ? (
+        ) : instance.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: 14 }}>
             No instances assigned. Contact your administrator.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: '1rem' }}>
-            {instances.map(inst => (
-              <button key={inst.id} className="btn btn-primary btn-lg"
+            {/* {instances.map(inst => ( */}
+              <button key={instance.id} className="btn btn-primary btn-lg"
                 style={{ width: '100%', justifyContent: 'center' }}
-                onClick={() => handleOpen(inst.id)}>
-                <ExternalLink size={16} /> Open {inst.name}
+                onClick={() => handleOpenInstance(instance.id)}>
+                <ExternalLink size={16} /> Open {instance.nameInstance}
               </button>
-            ))}
+            {/* ))} */}
           </div>
         )}
 

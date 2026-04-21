@@ -46,25 +46,25 @@ export default function InstancesPage() {
     }
   }
 
-async function handleOpenInstance(id) {
-  try {
-    // GET /api/instances/{id}/access → plain string URL in the response
-    const response = await api.get(`/instances/${id}/access`);
+  async function handleOpenInstance(id) {
+    try {
+      // GET /api/instances/{id}/access → plain string URL in the response
+      const response = await api.get(`/instances/${id}/access`);
 
-    // Extracting the access URL from the response object
-    const url = response.accessURL;
+      // Extracting the access URL from the response object
+      const url = response.accessURL;
 
-    // Open the access URL in a new tab
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');  // '_blank' opens in a new tab
-    } else {
-      console.error('Access URL not found in the response');
+      // Open the access URL in a new tab
+      if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer');  // '_blank' opens in a new tab
+      } else {
+        console.error('Access URL not found in the response');
+      }
+    } catch (err) {
+      console.error('Error fetching access URL:', err.message);
+      setError('Could not get instance URL: ' + err.message);
     }
-  } catch (err) {
-    console.error('Error fetching access URL:', err.message);
-    setError('Could not get instance URL: ' + err.message);
   }
-}
 
   return (
     <Layout>
