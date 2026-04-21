@@ -19,8 +19,8 @@ export default function ProfilePage() {
   const [companyError, setCE]         = useState('')
 
   // Password form
-  const [passwords, setPasswords]     = useState({ current: '', newPass: '', confirm: '' })
-  const [showPw, setShowPw]           = useState({ current: false, newPass: false, confirm: false })
+  const [passwords, setPasswords]     = useState({ newPass: '', confirm: '' })
+  const [showPw, setShowPw]           = useState({ newPass: false, confirm: false })
   const [pwLoading, setPwL]           = useState(false)
   const [pwSuccess, setPwS]           = useState(false)
   const [pwError, setPwE]             = useState('')
@@ -63,26 +63,49 @@ export default function ProfilePage() {
     }
   }
 
-  async function handlePasswordChange(e) {
-    e.preventDefault()
-    setPwE('')
-    setPwS(false)
-    if (passwords.newPass !== passwords.confirm) { setPwE('Passwords do not match.'); return }
-    if (passwords.newPass.length < 6) { setPwE('Password must be at least 6 characters.'); return }
-    setPwL(true)
-    try {
-      // No password change endpoint in current Swagger — placeholder
-      // TODO: connect when endpoint is available: POST /api/users/me/change-password
-      await new Promise(r => setTimeout(r, 800))
-      setPwS(true)
-      setPasswords({ current: '', newPass: '', confirm: '' })
-      setTimeout(() => setPwS(false), 3000)
-    } catch (err) {
-      setPwE(err.message)
-    } finally {
-      setPwL(false)
-    }
+async function handlePasswordChange(e) {
+  e.preventDefault()
+  setPwE('')
+  setPwS(false)
+
+  const newPassword = passwords.newPass.trim()
+  const confirmPassword = passwords.confirm.trim()
+
+  if (!newPassword) {
+    setPwE('Please enter a new password.')
+    return
   }
+
+  if (newPassword !== confirmPassword) {
+    setPwE('Passwords do not match.')
+    return
+  }
+
+  if (newPassword.length < 6) {
+    setPwE('Password must be at least 6 characters.')
+    return
+  }
+
+  setPwL(true)
+
+  try {
+    await api.patch('/auth/updatePassword', {
+      newPassword,
+    })
+
+    setPwS(true)
+    setPasswords({
+      newPass: '',
+      confirm: '',
+    })
+
+    setTimeout(() => setPwS(false), 3000)
+  } catch (err) {
+    setPwE(err.message || 'Unable to change password.')
+  } finally {
+    setPwL(false)
+  }
+}
 
   const initials = user
     ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || '??'
@@ -181,7 +204,7 @@ export default function ProfilePage() {
 
             <form onSubmit={handlePasswordChange}>
               {[
-                { key: 'current', label: 'Current Password', placeholder: '••••••••' },
+                // { key: 'current', label: 'Current Password', placeholder: '••••••••' },
                 { key: 'newPass', label: 'New Password',     placeholder: 'Min. 6 characters' },
                 { key: 'confirm', label: 'Confirm Password', placeholder: 'Repeat new password' },
               ].map(({ key, label, placeholder }) => (

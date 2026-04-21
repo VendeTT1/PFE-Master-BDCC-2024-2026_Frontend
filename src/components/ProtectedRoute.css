@@ -1,0 +1,22 @@
+/* Full-screen loading state shown while the cookie session is being verified.
+   Prevents the flash-redirect-to-login on page refresh. */
+.pr-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-base);
+}
+
+.pr-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border-md);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: pr-spin 0.7s linear infinite;
+}
+
+@keyframes pr-spin {
+  to { transform: rotate(360deg); }
+}
