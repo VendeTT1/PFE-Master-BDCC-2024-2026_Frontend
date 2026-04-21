@@ -28,7 +28,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
-  const isAdmin  = user?.role === 'ROLE_ADMIN'
+  const isAdmin  = user?.role === 'ADMIN'
   const navItems = isAdmin ? ADMIN_NAV : OWNER_NAV
 
   async function handleLogout() {

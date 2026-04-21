@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import Layout from '../../components/Layout'
 import { api } from '../../utils/api'
-import { Search, UserPlus, Trash2, MoreHorizontal, Mail, Shield, ShieldOff, X, Loader, AlertCircle } from 'lucide-react'
+import { Search, UserPlus, Trash2, MoreHorizontal, Mail, X, Loader, AlertCircle } from 'lucide-react'
+
+const PAGE_SIZE = 10
 
 export default function AdminUsers() {
   const [users, setUsers]           = useState([])
@@ -11,8 +13,11 @@ export default function AdminUsers() {
   const [search, setSearch]         = useState('')
   const [openMenu, setOpenMenu]     = useState(null)
   const [showInvite, setShowInvite] = useState(false)
+  const [page, setPage]             = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalUsers, setTotalUsers] = useState(0)
 
-  useEffect(() => { loadUsers() }, [])
+  useEffect(() => { loadUsers(page) }, [page])
 
   useEffect(() => {
     if (!search) { setFiltered(users); return }
@@ -24,12 +29,15 @@ export default function AdminUsers() {
     ))
   }, [users, search])
 
-  async function loadUsers() {
+  async function loadUsers(pageNum = 0) {
     setLoading(true)
     try {
-      // GET /api/company/users → UserResponseDTO[] { id, email, firstName, lastName, role, status }
-      const data = await api.get('/admin/allUsers')
-      setUsers(data || [])
+      // GET /admin/allUsers?page=0&size=10
+      // Response: Page<UserDTO> { content: [...], totalElements, totalPages }
+      const data = await api.get(`/admin/allUsers?page=${pageNum}&size=${PAGE_SIZE}`)
+      setUsers(data.content || [])
+      setTotalPages(data.totalPages ?? 0)
+      setTotalUsers(data.totalElements ?? 0)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -38,9 +46,8 @@ export default function AdminUsers() {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Remove this user from the company?')) return
+    if (!window.confirm('Remove this user?')) return
     try {
-      // DELETE /api/company/users/{id}
       await api.del(`/admin/user/${id}`)
       setUsers(prev => prev.filter(u => u.id !== id))
     } catch (err) {
@@ -68,79 +75,98 @@ export default function AdminUsers() {
         <div className="table-search-wrap">
           <Search size={14} className="table-search-icon" />
           <input className="input" style={{ paddingLeft: '2rem', maxWidth: 260 }}
-            placeholder="Search by name or email…" value={search} onChange={e => setSearch(e.target.value)} />
+            placeholder="Search by name or email…"
+            value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--text-muted)' }}>
-          {filtered.length} user{filtered.length !== 1 ? 's' : ''}
+          {totalUsers} user{totalUsers !== 1 ? 's' : ''} total
         </span>
       </div>
 
       {loading ? (
         <div className="empty-state"><Loader size={24} className="spin" /></div>
       ) : (
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(u => (
-                <tr key={u.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div className="user-table-avatar">{initials(u)}</div>
-                      <div>
-                        <div style={{ fontWeight: 500, fontSize: 13 }}>{u.firstName} {u.lastName}</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`badge ${u.userRole?.includes('ADMIN') ? 'badge-accent' : u.userRole?.includes('OWNER') ? 'badge-info' : 'badge-warning'}`}
-                      style={{ fontSize: 11 }}>
-                      {u.userRole?.replace('ROLE_', '') || '—'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${u.status === 'ACTIVE' ? 'badge-success' : 'badge-danger'}`}
-                      style={{ fontSize: 11 }}>{u.status}</span>
-                  </td>
-                  <td>
-                    <div style={{ position: 'relative' }}>
-                      <button className="btn btn-ghost btn-sm" style={{ padding: '4px 6px' }}
-                        onClick={() => setOpenMenu(openMenu === u.id ? null : u.id)}>
-                        <MoreHorizontal size={15} />
-                      </button>
-                      {openMenu === u.id && (
-                        <div className="instance-dropdown">
-                          <button onClick={() => { setOpenMenu(null); alert(`Email: ${u.email}`) }}>
-                            <Mail size={13} /> Email user
-                          </button>
-                          <button onClick={() => handleDelete(u.id)} style={{ color: 'var(--danger)' }}>
-                            <Trash2 size={13} /> Remove
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
+        <>
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th></th>
                 </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                  No users found.
-                </td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map(u => (
+                  <tr key={u.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="user-table-avatar">{initials(u)}</div>
+                        <div>
+                          <div style={{ fontWeight: 500, fontSize: 13 }}>{u.firstName} {u.lastName}</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`badge ${u.userRole?.includes('ADMIN') ? 'badge-accent' : u.userRole?.includes('OWNER') ? 'badge-info' : 'badge-warning'}`}
+                        style={{ fontSize: 11 }}>
+                        {u.userRole?.replace('ROLE_', '') || '—'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge ${u.status === 'ACTIVE' ? 'badge-success' : 'badge-danger'}`}
+                        style={{ fontSize: 11 }}>{u.status}</span>
+                    </td>
+                    <td>
+                      <div style={{ position: 'relative' }}>
+                        <button className="btn btn-ghost btn-sm" style={{ padding: '4px 6px' }}
+                          onClick={() => setOpenMenu(openMenu === u.id ? null : u.id)}>
+                          <MoreHorizontal size={15} />
+                        </button>
+                        {openMenu === u.id && (
+                          <div className="instance-dropdown">
+                            <button onClick={() => { setOpenMenu(null); alert(`Email: ${u.email}`) }}>
+                              <Mail size={13} /> Email user
+                            </button>
+                            <button onClick={() => handleDelete(u.id)} style={{ color: 'var(--danger)' }}>
+                              <Trash2 size={13} /> Remove
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                    No users found.
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: '1.5rem' }}>
+              <button className="btn btn-secondary btn-sm"
+                disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                Previous
+              </button>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)', alignSelf: 'center' }}>
+                Page {page + 1} of {totalPages}
+              </span>
+              <button className="btn btn-secondary btn-sm"
+                disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      {showInvite && <InviteModal onClose={() => setShowInvite(false)} onInvited={loadUsers} />}
+      {showInvite && <InviteModal onClose={() => setShowInvite(false)} onInvited={() => loadUsers(0)} />}
     </Layout>
   )
 }
@@ -156,8 +182,6 @@ function InviteModal({ onClose, onInvited }) {
     setError('')
     setLoading(true)
     try {
-      // POST /api/invitations/invite  body: InvitationRequestDTO { email }
-      // Response: InvitationResponseDTO { email, status, expirationDate }
       await api.post('/invitations/invite', { email })
       setSuccess(true)
       setTimeout(() => { onInvited(); onClose() }, 1500)
