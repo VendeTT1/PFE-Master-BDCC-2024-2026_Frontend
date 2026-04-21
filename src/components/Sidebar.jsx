@@ -28,17 +28,16 @@ export default function Sidebar({ mobileOpen, onClose }) {
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
-  const isAdmin   = user?.role === 'ADMIN'
-  const navItems  = isAdmin ? ADMIN_NAV : OWNER_NAV
+  const isAdmin  = user?.role === 'ROLE_ADMIN'
+  const navItems = isAdmin ? ADMIN_NAV : OWNER_NAV
 
   async function handleLogout() {
     await logout()
     navigate('/login')
   }
 
-  const initials = user?.firstName
-    ? user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-    : '??'
+  // Backend sends firstName + lastName separately — no combined 'name' field
+  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase() || '??'
 
   return (
     <>
