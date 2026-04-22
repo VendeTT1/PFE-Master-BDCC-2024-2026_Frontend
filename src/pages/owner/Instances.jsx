@@ -3,7 +3,7 @@ import Layout from '../../components/Layout'
 import { api } from '../../utils/api'
 import {
   Server, Plus, Play, Square, RotateCcw,
-  ExternalLink, Trash2, X, Loader, AlertCircle
+  ExternalLink, X, Loader, AlertCircle, UserPlus, Mail, Check
 } from 'lucide-react'
 
 function StatusDot({ status }) {
@@ -12,20 +12,20 @@ function StatusDot({ status }) {
 }
 
 export default function InstancesPage() {
-  const [instance, setInstances]   = useState([])
+  const [instance, setInstance]     = useState(null)
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState('')
   const [showAdd, setShowAdd]       = useState(false)
+  const [showInvite, setShowInvite] = useState(false)
   const [actionLoading, setAL]      = useState({})
 
-  useEffect(() => { loadInstances() }, [])
+  useEffect(() => { loadInstance() }, [])
 
-  async function loadInstances() {
+  async function loadInstance() {
     setLoading(true)
     try {
-      // GET /api/instances → InstanceResponseDTO[] { id, name, url, status }
       const data = await api.get('/instances/userInstance')
-      setInstances(data || null)
+      setInstance(data || null)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -36,9 +36,8 @@ export default function InstancesPage() {
   async function handleAction(id, action) {
     setAL(prev => ({ ...prev, [id]: action }))
     try {
-      // POST /api/instances/{id}/start | stop | restart
       await api.post(`/instances/${id}/${action}`)
-      await loadInstances()
+      await loadInstance()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -48,21 +47,15 @@ export default function InstancesPage() {
 
   async function handleOpenInstance(id) {
     try {
-      // GET /api/instances/{id}/access → plain string URL in the response
-      const response = await api.get(`/instances/${id}/access`);
-
-      // Extracting the access URL from the response object
-      const url = response.accessURL;
-
-      // Open the access URL in a new tab
-      if (url) {
-        window.open(url, '_blank', 'noopener,noreferrer');  // '_blank' opens in a new tab
+      const response = await api.get(`/instances/${id}/access`)
+      const url = response?.accessURL || response?.url || response
+      if (url && typeof url === 'string') {
+        window.open(url, '_blank', 'noopener,noreferrer')
       } else {
-        console.error('Access URL not found in the response');
+        setError('Access URL not available.')
       }
     } catch (err) {
-      console.error('Error fetching access URL:', err.message);
-      setError('Could not get instance URL: ' + err.message);
+      setError('Could not get instance URL: ' + err.message)
     }
   }
 
@@ -71,86 +64,98 @@ export default function InstancesPage() {
       <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <h1>Instances</h1>
-          <p>Monitor and manage your active Odoo connections.</p>
+          <p>Monitor and manage your active Odoo connection.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          <Plus size={16} /> Add Instance
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-secondary" onClick={() => setShowInvite(true)}>
+            <UserPlus size={16} /> Invite Staff
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+            <Plus size={16} /> Add Instance
+          </button>
+        </div>
       </div>
 
       {error && (
         <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>
           <AlertCircle size={15} /> {error}
-          <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto', padding: '2px 6px' }}
-            onClick={() => setError('')}>✕</button>
+          <button className="btn btn-ghost btn-sm"
+            style={{ marginLeft: 'auto', padding: '2px 6px' }}
+            onClick={() => setError('')}>x</button>
         </div>
       )}
 
       {loading ? (
         <div className="empty-state"><Loader size={24} className="spin" /></div>
-      ) : instance.length === 0 ? (
+      ) : !instance ? (
         <div className="card empty-state">
           <Server size={40} />
-          <h3>No instances yet</h3>
+          <h3>No instance yet</h3>
           <p>Click "Add Instance" to deploy your first Odoo instance.</p>
         </div>
       ) : (
         <div className="instances-grid">
-          {/* {instances.map(inst => ( */}
-            <div key={instance.id} className="card instance-card">
-              <div className="ic-header">
-                <div className="ic-icon-wrap"><Server size={20} /></div>
-                <div className="ic-meta">
-                  <div className="ic-name">{instance.nameInstance}</div>
-                  <div className="ic-type">ID #{instance.id}</div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-                  <StatusDot status={instance.status} />
-                </div>
+          <div className="card instance-card">
+            <div className="ic-header">
+              <div className="ic-icon-wrap"><Server size={20} /></div>
+              <div className="ic-meta">
+                <div className="ic-name">{instance.nameInstance}</div>
+                <div className="ic-type">ID #{instance.id} - {instance.region}</div>
               </div>
-
-              <div className="ic-stats">
-                <div className="ic-stat">
-                  <span className="ic-stat-label">Status</span>
-                  <span className={`badge ${instance.status === 'RUNNING' ? 'badge-success' : instance.status === 'STOPPED' ? 'badge-danger' : 'badge-warning'}`}
-                    style={{ fontSize: 11 }}>{instance.status}</span>
-                </div>
-                <div className="ic-stat">
-                  <span className="ic-stat-label">URL</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {instance.url ? 'Available' : 'Not set'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="ic-actions">
-                <button className="btn btn-secondary btn-sm"
-                  disabled={instance.status === 'RUNNING' || !!actionLoading[instance.id]}
-                  onClick={() => handleAction(instance.id, 'start')}>
-                  <Play size={13} />
-                  {actionLoading[instance.id] === 'start' ? 'Starting…' : 'Start'}
-                </button>
-                <button className="btn btn-secondary btn-sm"
-                  disabled={instance.status === 'STOPPED' || !!actionLoading[instance.id]}
-                  onClick={() => handleAction(instance.id, 'stop')}>
-                  <Square size={13} />
-                  {actionLoading[instance.id] === 'stop' ? 'Stopping…' : 'Stop'}
-                </button>
-                <button className="btn btn-secondary btn-sm"
-                  disabled={!!actionLoading[instance.id]}
-                  onClick={() => handleAction(instance.id, 'restart')}>
-                  <RotateCcw size={13} className={actionLoading[instance.id] === 'restart' ? 'spin' : ''} />
-                  {actionLoading[instance.id] === 'restart' ? 'Restarting…' : 'Restart'}
-                </button>
-                <button className="btn btn-primary btn-sm" style={{ marginLeft: 'auto' }}
-                  onClick={() => handleOpenInstance(instance.id)}>
-                  <ExternalLink size={13} /> Open
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+                <StatusDot status={instance.status} />
               </div>
             </div>
-          {/* ))} */}
 
-          {/* Add card */}
+            <div className="ic-stats">
+              <div className="ic-stat">
+                <span className="ic-stat-label">Status</span>
+                <span className={`badge ${
+                  instance.status === 'RUNNING' ? 'badge-success' :
+                  instance.status === 'STOPPED' ? 'badge-danger' : 'badge-warning'
+                }`} style={{ fontSize: 11 }}>{instance.status}</span>
+              </div>
+              <div className="ic-stat">
+                <span className="ic-stat-label">Owner</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  {instance.firstName} {instance.lastName}
+                </span>
+              </div>
+              <div className="ic-stat">
+                <span className="ic-stat-label">URL</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  {instance.url ? 'Available' : 'Not set'}
+                </span>
+              </div>
+            </div>
+
+            <div className="ic-actions">
+              <button className="btn btn-secondary btn-sm"
+                disabled={instance.status === 'RUNNING' || !!actionLoading[instance.id]}
+                onClick={() => handleAction(instance.id, 'start')}>
+                <Play size={13} />
+                {actionLoading[instance.id] === 'start' ? 'Starting...' : 'Start'}
+              </button>
+              <button className="btn btn-secondary btn-sm"
+                disabled={instance.status === 'STOPPED' || !!actionLoading[instance.id]}
+                onClick={() => handleAction(instance.id, 'stop')}>
+                <Square size={13} />
+                {actionLoading[instance.id] === 'stop' ? 'Stopping...' : 'Stop'}
+              </button>
+              <button className="btn btn-secondary btn-sm"
+                disabled={!!actionLoading[instance.id]}
+                onClick={() => handleAction(instance.id, 'restart')}>
+                <RotateCcw size={13}
+                  className={actionLoading[instance.id] === 'restart' ? 'spin' : ''} />
+                {actionLoading[instance.id] === 'restart' ? 'Restarting...' : 'Restart'}
+              </button>
+              <button className="btn btn-primary btn-sm" style={{ marginLeft: 'auto' }}
+                onClick={() => handleOpenInstance(instance.id)}>
+                <ExternalLink size={13} /> Open
+              </button>
+            </div>
+          </div>
+
           <div className="card instance-card instance-card-add" onClick={() => setShowAdd(true)}>
             <Plus size={24} style={{ marginBottom: 8 }} />
             <span>Deploy New Instance</span>
@@ -158,11 +163,13 @@ export default function InstancesPage() {
         </div>
       )}
 
-      {showAdd && <AddInstanceModal onClose={() => setShowAdd(false)} onAdded={loadInstances} />}
+      {showAdd    && <AddInstanceModal  onClose={() => setShowAdd(false)}    onAdded={loadInstance} />}
+      {showInvite && <InviteStaffModal  onClose={() => setShowInvite(false)} />}
     </Layout>
   )
 }
 
+// ── Add Instance Modal ────────────────────────────────────────────────────
 function AddInstanceModal({ onClose, onAdded }) {
   const [name, setName]       = useState('')
   const [loading, setLoading] = useState(false)
@@ -173,10 +180,7 @@ function AddInstanceModal({ onClose, onAdded }) {
     setError('')
     setLoading(true)
     try {
-      // POST /api/instances/create  → body shape TBD from backend
-      // Using { name } for now — adjust if backend expects more fields
-      // await api.post('/instances/create', { name })
-      await api.post('/instances/create')
+      await api.post('/instances/create', { name })
       onAdded()
       onClose()
     } catch (err) {
@@ -208,10 +212,156 @@ function AddInstanceModal({ onClose, onAdded }) {
           <div className="modal-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? <><Loader size={14} className="spin" /> Deploying…</> : 'Deploy Instance'}
+              {loading ? <><Loader size={14} className="spin" /> Deploying...</> : 'Deploy Instance'}
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+// ── Invite Staff Modal ────────────────────────────────────────────────────
+// POST /api/invitations/invite — requires ROLE_OWNER
+// Body:     InvitationRequestDTO  { email }
+// Response: InvitationResponseDTO { email, status, expirationDate }
+// The backend reads the company automatically from the authenticated user.
+function InviteStaffModal({ onClose }) {
+  const [email, setEmail]           = useState('')
+  const [loading, setLoading]       = useState(false)
+  const [error, setError]           = useState('')
+  const [success, setSuccess]       = useState(false)
+  const [inviteResult, setResult]   = useState(null)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const result = await api.post('/invitations/invite', { email })
+      setResult(result)
+      setSuccess(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleInviteAnother() {
+    setSuccess(false)
+    setResult(null)
+    setEmail('')
+    setError('')
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+
+        {/* Header — always visible */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+          <div>
+            <h2>Invite Staff Member</h2>
+            <p style={{ margin: 0 }}>
+              Send an invitation email to add someone to your company.
+            </p>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '4px 6px' }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
+
+        {success ? (
+          /* ── Success state ── */
+          <div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '0.5rem 0 1.5rem' }}>
+              {/* Checkmark circle */}
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%',
+                background: 'var(--success-soft)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: '1rem'
+              }}>
+                <Check size={24} style={{ color: 'var(--success)' }} />
+              </div>
+
+              <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6 }}>Invitation sent!</div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                An invite was sent to <strong>{inviteResult?.email || email}</strong>
+              </div>
+            </div>
+
+            {/* Invitation details from InvitationResponseDTO */}
+            {inviteResult && (
+              <div style={{
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                overflow: 'hidden',
+                marginBottom: '1.5rem'
+              }}>
+                {[
+                  { label: 'Email',   value: inviteResult.email },
+                  { label: 'Status',  value: inviteResult.status },
+                  {
+                    label: 'Expires',
+                    value: inviteResult.expirationDate
+                      ? new Date(inviteResult.expirationDate).toLocaleString()
+                      : '—'
+                  },
+                ].map(({ label, value }, i, arr) => (
+                  <div key={label} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '10px 14px', fontSize: 13,
+                    borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none'
+                  }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                    <span style={{ fontWeight: 500 }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={handleInviteAnother}>
+                <Mail size={14} /> Invite another
+              </button>
+              <button className="btn btn-primary" onClick={onClose}>Done</button>
+            </div>
+          </div>
+        ) : (
+          /* ── Form state ── */
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label className="label">Email address</label>
+              <input
+                className="input"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="staff@company.com"
+                required
+                autoFocus
+              />
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, display: 'block' }}>
+                They will receive an email with a link to set up their account.
+              </span>
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+              <button type="submit" className="btn btn-primary" disabled={loading}>
+                {loading
+                  ? <><Loader size={14} className="spin" /> Sending...</>
+                  : <><Mail size={14} /> Send Invite</>
+                }
+              </button>
+            </div>
+          </form>
+        )}
+
       </div>
     </div>
   )
