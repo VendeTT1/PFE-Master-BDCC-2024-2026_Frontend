@@ -13,7 +13,6 @@ export default function LoginPage() {
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
-  const [remember, setRemember] = useState(false)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
 
@@ -23,12 +22,9 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      // login() in AuthContext:
-      //   1. POST /api/auth/login (credentials:'include') → Spring Boot sets HTTP-Only cookie
-      //   2. GET /api/auth/admin  OR  /api/auth/staff     → fetch user profile using cookie
-      //   3. Returns the role string: 'ROLE_OWNER' | 'ROLE_ADMIN' | 'ROLE_STAFF'
+      // POST /api/auth/login → returns UserResponseDTO directly (role included)
+      // AuthContext.login() reads the role from the response and returns it
       const role = await login(email, password)
-      console.log('Login successful. User role:', role)
 
       if (!role) {
         setError('Login succeeded but could not load your profile. Please try again.')
@@ -36,10 +32,10 @@ export default function LoginPage() {
       }
 
       const simple = role.replace('ROLE_', '')
-      if (simple === 'ADMIN') navigate('/admin/dashboard', { replace: true })
-      else if (simple === 'OWNER') navigate('/dashboard',  { replace: true })
-      else if (simple === 'STAFF') navigate('/staff',      { replace: true })
-      else navigate('/dashboard', { replace: true })
+      if (simple === 'ADMIN')      navigate('/admin/dashboard', { replace: true })
+      else if (simple === 'OWNER') navigate('/dashboard',       { replace: true })
+      else if (simple === 'STAFF') navigate('/staff',           { replace: true })
+      else                         navigate('/dashboard',       { replace: true })
 
     } catch (err) {
       setError(err.message || 'Unable to reach the server. Please try again.')
@@ -62,7 +58,9 @@ export default function LoginPage() {
         </div>
 
         <div className="login-card">
-          {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
+          {error && (
+            <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>
+          )}
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
@@ -76,7 +74,7 @@ export default function LoginPage() {
               <label className="label">Password</label>
               <div className="login-pass-wrapper">
                 <input className="input" type={showPass ? 'text' : 'password'}
-                  placeholder="••••••••" value={password}
+                  placeholder="........" value={password}
                   onChange={e => setPassword(e.target.value)}
                   required autoComplete="current-password" />
                 <button type="button" className="login-pass-toggle"
@@ -86,12 +84,8 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="login-row">
-              <label className="login-remember">
-                <input type="checkbox" checked={remember}
-                  onChange={e => setRemember(e.target.checked)} />
-                <span>Remember me</span>
-              </label>
+            {/* Forgot password link */}
+            <div style={{ textAlign: 'right', marginTop: 4 }}>
               <Link to="/forgot-password" className="login-forgot">Forgot password?</Link>
             </div>
 

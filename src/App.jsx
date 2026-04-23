@@ -30,6 +30,8 @@ import './styles/instances.css'
 import './styles/subscription.css'
 import './styles/profile.css'
 import './styles/admin.css'
+import ForgotPasswordPage from './pages/auth/Forgotpassword'
+import ResetPasswordPage from './pages/auth/ResetPassword'
 
 export default function App() {
   return (
@@ -103,6 +105,8 @@ export default function App() {
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="/forgot-password"   element={<ForgotPasswordPage />} />
+            <Route path="/reset-password"    element={<ResetPasswordPage />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
