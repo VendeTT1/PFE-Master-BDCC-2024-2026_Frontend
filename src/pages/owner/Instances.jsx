@@ -227,18 +227,28 @@ function AddInstanceModal({ onClose, onAdded }) {
 // Response: InvitationResponseDTO { email, status, expirationDate }
 // The backend reads the company automatically from the authenticated user.
 function InviteStaffModal({ onClose }) {
-  const [email, setEmail]           = useState('')
-  const [loading, setLoading]       = useState(false)
-  const [error, setError]           = useState('')
-  const [success, setSuccess]       = useState(false)
-  const [inviteResult, setResult]   = useState(null)
+  const [form, setForm] = useState({
+    email: '',
+    firstName: '',
+    lastName: '',
+  })
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
+  const [success, setSuccess]     = useState(false)
+  const [inviteResult, setResult] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setLoading(true)
+
     try {
-      const result = await api.post('/invitations/invite', { email })
+      const result = await api.post('/invitations/invite', {
+        email: form.email,
+        firstName: form.firstName,
+        lastName: form.lastName,
+      })
+
       setResult(result)
       setSuccess(true)
     } catch (err) {
@@ -251,20 +261,28 @@ function InviteStaffModal({ onClose }) {
   function handleInviteAnother() {
     setSuccess(false)
     setResult(null)
-    setEmail('')
+    setForm({
+      email: '',
+      firstName: '',
+      lastName: '',
+    })
     setError('')
   }
+
+  function updateField(key, value) {
+    setForm(prev => ({ ...prev, [key]: value }))
+  }
+
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
 
-        {/* Header — always visible */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
           <div>
             <h2>Invite Staff Member</h2>
             <p style={{ margin: 0 }}>
-              Send an invitation email to add someone to your company.
+              Create a staff account and generate temporary login credentials.
             </p>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '4px 6px' }}>
@@ -275,26 +293,29 @@ function InviteStaffModal({ onClose }) {
         {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
 
         {success ? (
-          /* ── Success state ── */
           <div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '0.5rem 0 1.5rem' }}>
-              {/* Checkmark circle */}
               <div style={{
-                width: 52, height: 52, borderRadius: '50%',
+                width: 52,
+                height: 52,
+                borderRadius: '50%',
                 background: 'var(--success-soft)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 marginBottom: '1rem'
               }}>
                 <Check size={24} style={{ color: 'var(--success)' }} />
               </div>
 
-              <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6 }}>Invitation sent!</div>
+              <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6 }}>
+                Staff account created
+              </div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                An invite was sent to <strong>{inviteResult?.email || email}</strong>
+                Credentials were generated for <strong>{inviteResult?.email || form.email}</strong>
               </div>
             </div>
 
-            {/* Invitation details from InvitationResponseDTO */}
             {inviteResult && (
               <div style={{
                 background: 'var(--bg-elevated)',
@@ -304,26 +325,53 @@ function InviteStaffModal({ onClose }) {
                 marginBottom: '1.5rem'
               }}>
                 {[
-                  { label: 'Email',   value: inviteResult.email },
-                  { label: 'Status',  value: inviteResult.status },
+                  { label: 'Email', value: inviteResult.email },
+                  { label: 'Status', value: inviteResult.status },
                   {
                     label: 'Expires',
                     value: inviteResult.expirationDate
                       ? new Date(inviteResult.expirationDate).toLocaleString()
                       : '—'
                   },
+                  {
+                    label: 'Temporary Password',
+                    value: inviteResult.temporaryPassword || '—'
+                  },
                 ].map(({ label, value }, i, arr) => (
-                  <div key={label} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '10px 14px', fontSize: 13,
-                    borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none'
-                  }}>
+                  <div
+                    key={label}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '10px 14px',
+                      fontSize: 13,
+                      borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                      gap: 12
+                    }}
+                  >
                     <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
-                    <span style={{ fontWeight: 500 }}>{value}</span>
+                    <span style={{ fontWeight: 500, textAlign: 'right', wordBreak: 'break-word' }}>
+                      {value}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
+
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--text-muted)',
+                marginBottom: '1rem',
+                padding: '10px 12px',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              Save this temporary password now. Later, when email sending is integrated, this can be sent automatically.
+            </div>
 
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={handleInviteAnother}>
@@ -333,35 +381,58 @@ function InviteStaffModal({ onClose }) {
             </div>
           </div>
         ) : (
-          /* ── Form state ── */
           <form onSubmit={handleSubmit}>
+            <div className="form-row">
+              <div className="form-group">
+                <label className="label">First name</label>
+                <input
+                  className="input"
+                  value={form.firstName}
+                  onChange={e => updateField('firstName', e.target.value)}
+                  placeholder="John"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="label">Last name</label>
+                <input
+                  className="input"
+                  value={form.lastName}
+                  onChange={e => updateField('lastName', e.target.value)}
+                  placeholder="Doe"
+                  required
+                />
+              </div>
+            </div>
+
             <div className="form-group">
               <label className="label">Email address</label>
               <input
                 className="input"
                 type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                value={form.email}
+                onChange={e => updateField('email', e.target.value)}
                 placeholder="staff@company.com"
                 required
-                autoFocus
               />
               <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, display: 'block' }}>
-                They will receive an email with a link to set up their account.
+                A staff account will be created immediately and a temporary password will be generated.
               </span>
             </div>
+
             <div className="modal-actions">
               <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
               <button type="submit" className="btn btn-primary" disabled={loading}>
                 {loading
-                  ? <><Loader size={14} className="spin" /> Sending...</>
-                  : <><Mail size={14} /> Send Invite</>
+                  ? <><Loader size={14} className="spin" /> Creating...</>
+                  : <><Mail size={14} /> Create Staff Account</>
                 }
               </button>
             </div>
           </form>
         )}
-
       </div>
     </div>
   )
