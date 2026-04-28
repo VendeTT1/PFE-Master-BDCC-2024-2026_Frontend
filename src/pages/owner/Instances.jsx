@@ -180,7 +180,7 @@ function AddInstanceModal({ onClose, onAdded }) {
     setError('')
     setLoading(true)
     try {
-      await api.post('/instances/create', { name })
+      await api.post('/instances/create')
       onAdded()
       onClose()
     } catch (err) {
