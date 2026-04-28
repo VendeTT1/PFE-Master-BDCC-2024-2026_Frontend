@@ -30,8 +30,8 @@ import './styles/instances.css'
 import './styles/subscription.css'
 import './styles/profile.css'
 import './styles/admin.css'
-import ForgotPasswordPage from './pages/auth/Forgotpassword'
 import ResetPasswordPage from './pages/auth/ResetPassword'
+import ForgotPasswordPage from './pages/auth/ForgotPassword'
 
 export default function App() {
   return (
