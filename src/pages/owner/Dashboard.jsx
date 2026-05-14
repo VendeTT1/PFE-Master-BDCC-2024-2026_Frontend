@@ -29,10 +29,10 @@ export default function OwnerDashboard() {
       //   id, firstName, lastName, nameInstance, region, status, url, userEmail
       // }
       const [inst, sub] = await Promise.all([
-        api.get('/instances/userInstance'),
+        api.get('/instances/userInstance').catch(() => null),
         api.get('/subscription').catch(() => null),
       ])
-      setInstance(inst || null)
+      setInstance(inst)
       setSubscription(sub)
     } catch (err) {
       setError(err.message)
@@ -70,7 +70,7 @@ export default function OwnerDashboard() {
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'there'
 
   const daysLeft = subscription?.endDate
-    ? Math.max(0, Math.ceil((new Date(subscription.endDate) - new Date()) / 86400000))
+    ? Math.max(0, Math.ceil((new Date(subscription?.endDate) - new Date()) / 86400000))
     : null
 
   if (loading) return <Layout><div className="empty-state"><p>Loading dashboard...</p></div></Layout>
@@ -131,7 +131,7 @@ export default function OwnerDashboard() {
             <div className="stat-label">Days Left</div>
             <div className="stat-value">{daysLeft}</div>
             <div className="stat-sub">
-              Ends {new Date(subscription.endDate).toLocaleDateString()}
+              Ends {new Date(subscription?.endDate).toLocaleDateString()}
             </div>
           </div>
         )}

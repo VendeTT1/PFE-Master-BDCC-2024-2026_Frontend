@@ -4,53 +4,31 @@ import { api, API_BASE, silentRefresh, startTokenRefresh, stopTokenRefresh } fro
 /**
  * AuthContext — session management with HTTP-Only cookie auth.
  *
- * COOKIE NAMES (set by Spring Boot, HttpOnly, inaccessible to JS):
+ * COOKIE NAMES (set by Spring Boot, HttpOnly):
  *   JWT           → access token  (15 min)
- *   Refresh_Token → refresh token (7 days)
+ *   Refresh_Token → refresh token (8 hours per AuthService)
  *
- * WHY PAGE REFRESH USED TO LOG THE USER OUT:
- *   The old code called GET /api/auth/me which doesn't exist in the backend.
- *   Every call threw a 404/401, restoreSession() caught it, set user=null,
- *   and ProtectedRoute redirected to /login.
+ * UserResponseDTO shape (from AuthService.login):
+ *   { email, firstName, lastName, role, status }
+ *   NOTE: no 'id' field — the backend DTO doesn't include it.
  *
- * HOW SESSION RESTORE NOW WORKS:
- *   On page refresh the JWT cookie may still be valid (< 15min old).
- *   We call POST /api/auth/refresh which:
- *     - reads the Refresh_Token cookie (valid for 7 days)
- *     - issues a fresh JWT cookie
- *     - returns 200 with empty body
- *   Then we call the profile endpoint that actually exists in your backend
- *   to get the user's display info and role.
+ * ROLES (UserRole enum → .name()):
+ *   ROLE_OWNER  → /dashboard
+ *   ROLE_ADMIN  → /admin/dashboard
+ *   ROLE_STAFF  → /staff
  *
- * SESSION LIFECYCLE:
+ * SESSION RESTORE ON PAGE REFRESH:
+ *   1. POST /api/auth/refresh → reads Refresh_Token cookie → sets new JWT
+ *   2. fetchAndSetProfile()   → GET /api/auth/admin or /api/auth/staff
+ *      (using the new JWT cookie just set in step 1)
  *
- *  APP START / PAGE REFRESH:
- *    POST /api/auth/refresh  (Refresh_Token cookie sent automatically)
- *      ├── 200 → new JWT cookie set → GET profile endpoint → setUser()
- *      └── 401 → Refresh_Token expired → user must log in
+ * LOGIN:
+ *   POST /api/auth/login → returns UserResponseDTO directly in body
+ *   (cookies set in response headers — no second profile call needed)
  *
- *  LOGIN:
- *    POST /api/auth/login → returns UserResponseDTO directly → setUser()
- *    startTokenRefresh() → fires every 12 min
- *
- *  EVERY 12 MIN (background):
- *    POST /api/auth/refresh → new JWT cookie
- *
- *  LOGOUT:
- *    POST /api/auth/logout → both cookies deleted server-side
- *    stopTokenRefresh() → timer cleared, user=null
- *
- *  ANY 401 SLIPPING THROUGH:
- *    api.js fires 'mono:session-expired' → _clearSession()
- *
- * ─────────────────────────────────────────────────────────────
- * BACKEND NOTE:
- *   Your backend has GET /api/auth/staff and GET /api/auth/admin.
- *   We use /api/auth/staff as the profile endpoint since it works
- *   for ROLE_OWNER and ROLE_STAFF. ROLE_ADMIN uses /api/auth/admin.
- *   Once you add GET /api/auth/me on the backend, replace both calls
- *   with a single api.get('/auth/me').
- * ─────────────────────────────────────────────────────────────
+ * PROACTIVE REFRESH:
+ *   startTokenRefresh() fires every 12 minutes to keep the JWT alive
+ *   before its 15-minute expiry.
  */
 
 const AuthContext = createContext(null)
@@ -61,41 +39,37 @@ export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Listen for hard 401s from api.js
+  // Listen for hard 401 events from api.js
   useEffect(() => {
     function onExpired() { _clearSession() }
     window.addEventListener('mono:session-expired', onExpired)
     return () => window.removeEventListener('mono:session-expired', onExpired)
   }, [])
 
-  // Restore session on every mount (page load / refresh)
+  // Restore session on every mount / page refresh
   useEffect(() => {
     restoreSession()
     return () => stopTokenRefresh()
   }, [])
 
-  // ── Restore session on page refresh ──────────────────────────────────
-  // Step 1: call /api/auth/refresh to get a fresh JWT from the Refresh_Token cookie.
-  //         This is the only endpoint that doesn't need a valid JWT — just the refresh cookie.
-  // Step 2: fetch the user profile with the new JWT.
+  // ── Restore session on page refresh ────────────────────────────────────
   async function restoreSession() {
     setLoading(true)
     try {
-      // POST /api/auth/refresh — reads Refresh_Token cookie, sets new JWT cookie.
-      // Returns 200 with EMPTY body (do not parse as JSON).
+      // Step 1: exchange Refresh_Token cookie for a new JWT cookie
       const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
         method: 'POST',
-        credentials: 'include',  // sends Refresh_Token cookie
+        credentials: 'include',
       })
 
       if (!refreshRes.ok) {
-        // Refresh_Token is expired or missing — user must log in
+        // Refresh_Token expired or missing — user must log in again
         setUser(null)
         stopTokenRefresh()
         return
       }
 
-      // JWT is now fresh. Fetch the user profile.
+      // Step 2: JWT is fresh, fetch the user profile
       await fetchAndSetProfile()
       startTokenRefresh()
     } catch {
@@ -106,32 +80,33 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // ── Fetch user profile ────────────────────────────────────────────────
-  // Uses whichever profile endpoint exists on the backend.
-  // TODO: replace both calls with api.get('/auth/me') once you add that endpoint.
+  // ── Fetch user profile ──────────────────────────────────────────────────
+  // Tries /auth/admin first (ROLE_ADMIN), falls back to /auth/staff (ROLE_OWNER / ROLE_STAFF).
+  // TODO: replace both calls with api.get('/auth/me') once that endpoint is added.
   async function fetchAndSetProfile() {
-    // Try admin endpoint first — returns UserResponseDTO for ROLE_ADMIN
     try {
       const adminUser = await api.get('/auth/admin')
       if (adminUser) {
         setUser(adminUser)
         return adminUser.role
       }
-    } catch { /* not admin, fall through */ }
+    } catch { /* not an admin, fall through */ }
 
-    // Owner and Staff endpoint — returns UserResponseDTO for ROLE_OWNER / ROLE_STAFF
     const staffUser = await api.get('/auth/staff')
     setUser(staffUser)
-    return staffUser.role
+    return staffUser?.role
   }
 
-  // ── Login ─────────────────────────────────────────────────────────────
-  // POST /api/auth/login returns UserResponseDTO directly — no second profile call needed.
+  // ── Login ───────────────────────────────────────────────────────────────
+  // POST /api/auth/login
+  // Response: UserResponseDTO { email, firstName, lastName, role, status }
+  //   (Spring Boot sets JWT + Refresh_Token cookies in the response headers)
+  // No second profile call needed — the response IS the user DTO.
   async function login(email, password) {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',  // browser stores JWT + Refresh_Token from Set-Cookie headers
+      credentials: 'include',
       body: JSON.stringify({ email, password }),
     })
 
@@ -140,18 +115,19 @@ export function AuthProvider({ children }) {
       throw new Error(body.message || 'Invalid email or password.')
     }
 
-    // Login response IS the UserResponseDTO — no extra call needed
+    // UserResponseDTO: { email, firstName, lastName, role, status }
     const userData = await res.json()
     setUser(userData)
     startTokenRefresh()
 
-    return userData.role
+    return userData.role  // caller uses this to navigate to the right home page
   }
 
-  // ── Register ──────────────────────────────────────────────────────────
-  // RegisterRequestDTO: { companyName, country, email, password, firstName, lastName }
-  // RegisterResponseDTO: { companyId, userId, message }
-  // Does NOT log in — user redirected to /login after.
+  // ── Register ────────────────────────────────────────────────────────────
+  // POST /api/auth/register
+  // Body: RegisterRequestDTO { companyName, country, email, password, firstName, lastName }
+  // Response: RegisterResponseDTO { companyId, userId, message }
+  // Does NOT log the user in — redirect to /login after success.
   async function register({ companyName, country, email, password, firstName, lastName }) {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
@@ -168,11 +144,12 @@ export function AuthProvider({ children }) {
     return res.json()
   }
 
-  // ── Logout ────────────────────────────────────────────────────────────
+  // ── Logout ──────────────────────────────────────────────────────────────
+  // POST /api/auth/logout
+  // Spring Boot revokes Refresh_Token and clears both cookies (MaxAge=0).
   async function logout() {
-    stopTokenRefresh()  // stop the timer immediately
+    stopTokenRefresh()
     try {
-      // Spring Boot sets both cookies Max-Age=0 and revokes the refresh token
       await fetch(`${API_BASE}/auth/logout`, {
         method: 'POST',
         credentials: 'include',
@@ -186,10 +163,13 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  // Update local display info without a full re-login
   function updateUser(partial) {
     setUser(prev => prev ? { ...prev, ...partial } : prev)
   }
 
+  // Strips 'ROLE_' prefix for simple role checks in components
+  // e.g. 'ROLE_OWNER' → 'OWNER'
   const simpleRole = user?.role ? user.role.replace('ROLE_', '') : null
 
   return (

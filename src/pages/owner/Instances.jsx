@@ -163,8 +163,8 @@ export default function InstancesPage() {
         </div>
       )}
 
-      {showAdd    && <AddInstanceModal  onClose={() => setShowAdd(false)}    onAdded={loadInstance} />}
-      {showInvite && <InviteStaffModal  onClose={() => setShowInvite(false)} />}
+      {showAdd    && <AddInstanceModal onClose={() => setShowAdd(false)} onAdded={loadInstance} />}
+      {showInvite && <InviteStaffModal onClose={() => setShowInvite(false)} />}
     </Layout>
   )
 }
@@ -222,36 +222,44 @@ function AddInstanceModal({ onClose, onAdded }) {
 }
 
 // ── Invite Staff Modal ────────────────────────────────────────────────────
-// POST /api/invitations/invite — requires ROLE_OWNER
-// Body:     InvitationRequestDTO  { email }
+// POST /api/invitations/invite  — requires ROLE_OWNER
+// Body:     InvitationRequestDTO  { email, firstName, lastName }
 // Response: InvitationResponseDTO { email, status, expirationDate }
-// The backend reads the company automatically from the authenticated user.
+// The backend:
+//   1. Creates the User with ROLE_STAFF
+//   2. Generates a temporary password
+//   3. Creates the Odoo user via Docker exec
+//   4. Sends the credentials by email
+//   5. Increments the activeUsersSnapshot counter
 function InviteStaffModal({ onClose }) {
-  const [form, setForm] = useState({
-    email: '',
-    firstName: '',
-    lastName: '',
-  })
+  const [form, setForm] = useState({ email: '', firstName: '', lastName: '' })
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
   const [success, setSuccess]     = useState(false)
   const [inviteResult, setResult] = useState(null)
 
+  function updateField(key, value) {
+    setForm(prev => ({ ...prev, [key]: value }))
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     try {
+      // Body must include email + firstName + lastName — all required by InvitationRequestDTO
       const result = await api.post('/invitations/invite', {
-        email: form.email,
+        email:     form.email,
         firstName: form.firstName,
-        lastName: form.lastName,
+        lastName:  form.lastName,
       })
-
       setResult(result)
       setSuccess(true)
     } catch (err) {
+      // Backend errors surface here, e.g.:
+      //   "User limit reached for the trial period. Upgrade required."
+      //   "User with this email already exists"
+      //   "Subscription has expired"
       setError(err.message)
     } finally {
       setLoading(false)
@@ -261,23 +269,15 @@ function InviteStaffModal({ onClose }) {
   function handleInviteAnother() {
     setSuccess(false)
     setResult(null)
-    setForm({
-      email: '',
-      firstName: '',
-      lastName: '',
-    })
+    setForm({ email: '', firstName: '', lastName: '' })
     setError('')
   }
-
-  function updateField(key, value) {
-    setForm(prev => ({ ...prev, [key]: value }))
-  }
-
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
 
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
           <div>
             <h2>Invite Staff Member</h2>
@@ -290,42 +290,46 @@ function InviteStaffModal({ onClose }) {
           </button>
         </div>
 
-        {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
+        {error && (
+          <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>
+            <AlertCircle size={14} /> {error}
+          </div>
+        )}
 
         {success ? (
+          /* ── Success state ── */
           <div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '0.5rem 0 1.5rem' }}>
+            <div style={{
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', textAlign: 'center', padding: '0.5rem 0 1.5rem'
+            }}>
               <div style={{
-                width: 52,
-                height: 52,
-                borderRadius: '50%',
+                width: 52, height: 52, borderRadius: '50%',
                 background: 'var(--success-soft)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 marginBottom: '1rem'
               }}>
                 <Check size={24} style={{ color: 'var(--success)' }} />
               </div>
-
               <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6 }}>
                 Staff account created
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                Credentials were generated for <strong>{inviteResult?.email || form.email}</strong>
+                Credentials were sent to <strong>{inviteResult?.email || form.email}</strong>
               </div>
             </div>
 
+            {/* Invitation detail rows from InvitationResponseDTO */}
             {inviteResult && (
               <div style={{
                 background: 'var(--bg-elevated)',
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-md)',
                 overflow: 'hidden',
-                marginBottom: '1.5rem'
+                marginBottom: '1rem'
               }}>
                 {[
-                  { label: 'Email', value: inviteResult.email },
+                  { label: 'Email',  value: inviteResult.email },
                   { label: 'Status', value: inviteResult.status },
                   {
                     label: 'Expires',
@@ -333,24 +337,16 @@ function InviteStaffModal({ onClose }) {
                       ? new Date(inviteResult.expirationDate).toLocaleString()
                       : '—'
                   },
-                  {
-                    label: 'Temporary Password',
-                    value: inviteResult.temporaryPassword || '—'
-                  },
+                  // temporaryPassword is commented out in the backend DTO for now.
+                  // Uncomment this line when the backend exposes it:
+                  // { label: 'Temp Password', value: inviteResult.temporaryPassword || '—' },
                 ].map(({ label, value }, i, arr) => (
-                  <div
-                    key={label}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '10px 14px',
-                      fontSize: 13,
-                      borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
-                      gap: 12
-                    }}
-                  >
-                    <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                  <div key={label} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '10px 14px', fontSize: 13, gap: 12,
+                    borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none'
+                  }}>
+                    <span style={{ color: 'var(--text-secondary)', flexShrink: 0 }}>{label}</span>
                     <span style={{ fontWeight: 500, textAlign: 'right', wordBreak: 'break-word' }}>
                       {value}
                     </span>
@@ -359,18 +355,16 @@ function InviteStaffModal({ onClose }) {
               </div>
             )}
 
-            <div
-              style={{
-                fontSize: 12,
-                color: 'var(--text-muted)',
-                marginBottom: '1rem',
-                padding: '10px 12px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              Save this temporary password now. Later, when email sending is integrated, this can be sent automatically.
+            {/* Info note — remove once email sending is confirmed working */}
+            <div style={{
+              fontSize: 12, color: 'var(--text-muted)',
+              padding: '10px 12px', marginBottom: '1rem',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)'
+            }}>
+              The staff member will receive their temporary password by email.
+              Once email sending is confirmed working, you can remove this notice.
             </div>
 
             <div className="modal-actions">
@@ -381,44 +375,46 @@ function InviteStaffModal({ onClose }) {
             </div>
           </div>
         ) : (
+          /* ── Form state ── */
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
-                <label className="label">First name</label>
+                <label className="label">First name *</label>
                 <input
                   className="input"
+                  type="text"
+                  placeholder="John"
                   value={form.firstName}
                   onChange={e => updateField('firstName', e.target.value)}
-                  placeholder="John"
                   required
                   autoFocus
                 />
               </div>
-
               <div className="form-group">
-                <label className="label">Last name</label>
+                <label className="label">Last name *</label>
                 <input
                   className="input"
+                  type="text"
+                  placeholder="Doe"
                   value={form.lastName}
                   onChange={e => updateField('lastName', e.target.value)}
-                  placeholder="Doe"
                   required
                 />
               </div>
             </div>
 
             <div className="form-group">
-              <label className="label">Email address</label>
+              <label className="label">Email address *</label>
               <input
                 className="input"
                 type="email"
+                placeholder="staff@company.com"
                 value={form.email}
                 onChange={e => updateField('email', e.target.value)}
-                placeholder="staff@company.com"
                 required
               />
               <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, display: 'block' }}>
-                A staff account will be created immediately and a temporary password will be generated.
+                A temporary password will be generated and emailed to them automatically.
               </span>
             </div>
 
@@ -433,6 +429,7 @@ function InviteStaffModal({ onClose }) {
             </div>
           </form>
         )}
+
       </div>
     </div>
   )
