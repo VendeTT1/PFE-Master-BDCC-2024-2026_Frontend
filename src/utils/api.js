@@ -56,7 +56,8 @@
  *   await api.del('/company/users/5')
  */
 
-export const API_BASE = 'http://localhost:8080/api'
+// export const API_BASE = 'http://localhost:8080/api'
+  export const API_BASE = 'https://tapioca-sanding-outshine.ngrok-free.dev';
 
 // ─── Refresh interval config ──────────────────────────────────────────────
 // JWT expires in 15 minutes → we refresh every 12 minutes (3 min safety buffer)
