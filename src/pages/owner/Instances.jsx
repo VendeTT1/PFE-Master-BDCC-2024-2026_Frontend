@@ -3,14 +3,94 @@ import Layout from '../../components/Layout'
 import { api } from '../../utils/api'
 import {
   Server, Plus, Play, Square, RotateCcw,
-  ExternalLink, X, Loader, AlertCircle, UserPlus, Mail, Check
+  ExternalLink, X, Loader, AlertCircle, UserPlus, Mail, Check,
+  ShoppingCart, Package, BarChart2, CreditCard, Warehouse,
+  Wrench, Globe, FileText, Users, ChevronRight, ArrowLeft
 } from 'lucide-react'
 
+// ── Module catalogue ──────────────────────────────────────────────────────
+// Each entry maps to an Odoo technical module name sent to the backend.
+const ODOO_MODULES = [
+  {
+    key: 'sale',
+    label: 'Sales',
+    description: 'Quotations, orders, and customer pipeline management.',
+    icon: ShoppingCart,
+    category: 'Commerce',
+  },
+  {
+    key: 'purchase',
+    label: 'Purchase',
+    description: 'Vendor bills, RFQs, and procurement workflows.',
+    icon: Package,
+    category: 'Commerce',
+  },
+  {
+    key: 'inventory',
+    label: 'Inventory',
+    description: 'Stock moves, warehouses, and real-time traceability.',
+    icon: Warehouse,
+    category: 'Operations',
+  },
+  {
+    key: 'point_of_sale',
+    label: 'Point of Sale',
+    description: 'Retail checkout, sessions, and payment terminals.',
+    icon: CreditCard,
+    category: 'Commerce',
+  },
+  {
+    key: 'account',
+    label: 'Accounting',
+    description: 'Invoices, journals, reconciliation, and financial reports.',
+    icon: BarChart2,
+    category: 'Finance',
+  },
+  {
+    key: 'project',
+    label: 'Project',
+    description: 'Tasks, milestones, timesheets, and Kanban boards.',
+    icon: FileText,
+    category: 'Productivity',
+  },
+  {
+    key: 'hr',
+    label: 'Human Resources',
+    description: 'Employees, contracts, and org-chart management.',
+    icon: Users,
+    category: 'HR',
+  },
+  {
+    key: 'website',
+    label: 'Website',
+    description: 'Drag-and-drop website builder with eCommerce support.',
+    icon: Globe,
+    category: 'Marketing',
+  },
+  {
+    key: 'maintenance',
+    label: 'Maintenance',
+    description: 'Equipment tracking, requests, and preventive schedules.',
+    icon: Wrench,
+    category: 'Operations',
+  },
+  {
+    key: 'saas_sso',
+    label: 'SaaS SSO',
+    description: 'Single sign-on integration for multi-tenant SaaS setups.',
+    icon: Server,
+    category: 'Platform',
+    required: true,   // always included — shown but non-togglable
+  },
+]
+
+// ── Helpers ───────────────────────────────────────────────────────────────
 function StatusDot({ status }) {
   const cls = status === 'RUNNING' ? 'online' : status === 'STOPPED' ? 'offline' : 'pending'
   return <span className={`status-dot ${cls}`} />
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────
 export default function InstancesPage() {
   const [instance, setInstance]     = useState(null)
   const [loading, setLoading]       = useState(true)
@@ -127,6 +207,14 @@ export default function InstancesPage() {
                   {instance.url ? 'Available' : 'Not set'}
                 </span>
               </div>
+              {instance.modules?.length > 0 && (
+                <div className="ic-stat" style={{ gridColumn: '1 / -1' }}>
+                  <span className="ic-stat-label">Modules</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {instance.modules.join(', ')}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="ic-actions">
@@ -169,18 +257,45 @@ export default function InstancesPage() {
   )
 }
 
-// ── Add Instance Modal ────────────────────────────────────────────────────
+// ── Add Instance Modal (2-step) ───────────────────────────────────────────
+// Step 1 — instance name
+// Step 2 — module selection
+// POST /instances/create  Body: CreatedInstanceRequestDTO { name, modules[] }
 function AddInstanceModal({ onClose, onAdded }) {
-  const [name, setName]       = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
+  const [step, setStep]           = useState(1)           // 1 | 2
+  const [name, setName]           = useState('')
+  const [selected, setSelected]   = useState(new Set(['saas_sso']))  // required always on
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
 
-  async function handleSubmit(e) {
+  // Group modules by category for the grid
+  const categories = [...new Set(ODOO_MODULES.map(m => m.category))]
+
+  function toggleModule(key) {
+    const mod = ODOO_MODULES.find(m => m.key === key)
+    if (mod?.required) return                              // can't deselect required modules
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
+
+  function handleNextStep(e) {
     e.preventDefault()
+    if (!name.trim()) return
+    setError('')
+    setStep(2)
+  }
+
+  async function handleDeploy() {
     setError('')
     setLoading(true)
     try {
-      await api.post('/instances/create')
+      // Payload matches CreatedInstanceRequestDTO { name, modules }
+      await api.post('/instances/create', {
+        modules: [...selected],
+      })
       onAdded()
       onClose()
     } catch (err) {
@@ -190,32 +305,195 @@ function AddInstanceModal({ onClose, onAdded }) {
     }
   }
 
+  // ── Styles scoped to this modal ──────────────────────────────────────────
+  const moduleGrid = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    gap: '10px',
+    marginBottom: '1rem',
+  }
+
+  const moduleCard = (isSelected, isRequired) => ({
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    padding: '12px 14px',
+    borderRadius: 'var(--radius-md)',
+    border: `1.5px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+    background: isSelected ? 'var(--primary-soft, rgba(99,102,241,.08))' : 'var(--bg-elevated)',
+    cursor: isRequired ? 'default' : 'pointer',
+    transition: 'border-color 0.15s, background 0.15s',
+    opacity: isRequired ? 0.7 : 1,
+    position: 'relative',
+    userSelect: 'none',
+  })
+
+  const checkBadge = {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 18,
+    height: 18,
+    borderRadius: '50%',
+    background: 'var(--primary)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  }
+
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
+      {/* Wider modal for step 2 */}
+      <div className="modal" style={{ maxWidth: step === 2 ? 680 : 480, width: '100%' }}>
+
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-          <div>
-            <h2>New Instance</h2>
-            <p style={{ margin: 0 }}>Deploy a new Odoo instance for your company.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {step === 2 && (
+              <button className="btn btn-ghost btn-sm" onClick={() => setStep(1)} style={{ padding: '4px 6px' }}>
+                <ArrowLeft size={16} />
+              </button>
+            )}
+            <div>
+              <h2 style={{ margin: 0 }}>
+                {step === 1 ? 'New Instance' : 'Select Modules'}
+              </h2>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+                {step === 1
+                  ? 'Deploy a new Odoo instance for your company.'
+                  : `Choose the apps to install on "${name}".`}
+              </p>
+            </div>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '4px 6px' }}>
             <X size={18} />
           </button>
         </div>
-        {error && <div className="alert alert-danger">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="label">Instance name</label>
-            <input className="input" value={name} onChange={e => setName(e.target.value)}
-              placeholder="e.g. Production Server" required />
+
+        {/* Step indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '1.25rem' }}>
+          {[1, 2].map((s, i) => (
+            <>
+              <div key={s} style={{
+                width: 24, height: 24, borderRadius: '50%',
+                background: step >= s ? 'var(--primary)' : 'var(--border)',
+                color: step >= s ? '#fff' : 'var(--text-muted)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 700, flexShrink: 0,
+              }}>
+                {s}
+              </div>
+              {i === 0 && (
+                <div key="sep" style={{
+                  flex: 1, height: 2,
+                  background: step === 2 ? 'var(--primary)' : 'var(--border)',
+                  transition: 'background 0.2s',
+                }} />
+              )}
+            </>
+          ))}
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 6 }}>
+            {step === 1 ? 'Name your instance' : `${selected.size} module${selected.size !== 1 ? 's' : ''} selected`}
+          </span>
+        </div>
+
+        {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
+
+        {/* ── Step 1: Name ── */}
+        {step === 1 && (
+          <form onSubmit={handleNextStep}>
+            <div className="form-group">
+              <label className="label">Instance name *</label>
+              <input
+                className="input"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. Production Server"
+                required
+                autoFocus
+              />
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+              <button type="submit" className="btn btn-primary">
+                Choose Modules <ChevronRight size={15} />
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ── Step 2: Module grid ── */}
+        {step === 2 && (
+          <div>
+            {/* Scrollable area for module cards */}
+            <div style={{ maxHeight: '55vh', overflowY: 'auto', paddingRight: 4 }}>
+              {categories.map(cat => (
+                <div key={cat} style={{ marginBottom: '1.25rem' }}>
+                  <div style={{
+                    fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+                    letterSpacing: '0.06em', color: 'var(--text-muted)',
+                    marginBottom: 8,
+                  }}>
+                    {cat}
+                  </div>
+                  <div style={moduleGrid}>
+                    {ODOO_MODULES.filter(m => m.category === cat).map(mod => {
+                      const isSelected = selected.has(mod.key)
+                      const Icon = mod.icon
+                      return (
+                        <div
+                          key={mod.key}
+                          style={moduleCard(isSelected, mod.required)}
+                          onClick={() => toggleModule(mod.key)}
+                          role="checkbox"
+                          aria-checked={isSelected}
+                          tabIndex={mod.required ? -1 : 0}
+                          onKeyDown={e => e.key === ' ' && toggleModule(mod.key)}
+                        >
+                          {isSelected && (
+                            <div style={checkBadge}>
+                              <Check size={11} strokeWidth={3} color="#fff" />
+                            </div>
+                          )}
+                          <Icon size={18} style={{ color: isSelected ? 'var(--primary)' : 'var(--text-muted)' }} />
+                          <div style={{ fontWeight: 600, fontSize: 13 }}>{mod.label}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                            {mod.description}
+                          </div>
+                          {mod.required && (
+                            <div style={{
+                              fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                              letterSpacing: '0.05em', color: 'var(--primary)', marginTop: 2,
+                            }}>
+                              Required
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="modal-actions" style={{ marginTop: '1rem' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setStep(1)}>
+                <ArrowLeft size={14} /> Back
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleDeploy}
+                disabled={loading || selected.size === 0}
+              >
+                {loading
+                  ? <><Loader size={14} className="spin" /> Deploying...</>
+                  : <><Server size={14} /> Deploy Instance</>
+                }
+              </button>
+            </div>
           </div>
-          <div className="modal-actions">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? <><Loader size={14} className="spin" /> Deploying...</> : 'Deploy Instance'}
-            </button>
-          </div>
-        </form>
+        )}
       </div>
     </div>
   )
@@ -247,7 +525,6 @@ function InviteStaffModal({ onClose }) {
     setError('')
     setLoading(true)
     try {
-      // Body must include email + firstName + lastName — all required by InvitationRequestDTO
       const result = await api.post('/invitations/invite', {
         email:     form.email,
         firstName: form.firstName,
@@ -256,10 +533,6 @@ function InviteStaffModal({ onClose }) {
       setResult(result)
       setSuccess(true)
     } catch (err) {
-      // Backend errors surface here, e.g.:
-      //   "User limit reached for the trial period. Upgrade required."
-      //   "User with this email already exists"
-      //   "Subscription has expired"
       setError(err.message)
     } finally {
       setLoading(false)
@@ -277,7 +550,6 @@ function InviteStaffModal({ onClose }) {
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
 
-        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
           <div>
             <h2>Invite Staff Member</h2>
@@ -297,7 +569,6 @@ function InviteStaffModal({ onClose }) {
         )}
 
         {success ? (
-          /* ── Success state ── */
           <div>
             <div style={{
               display: 'flex', flexDirection: 'column',
@@ -319,7 +590,6 @@ function InviteStaffModal({ onClose }) {
               </div>
             </div>
 
-            {/* Invitation detail rows from InvitationResponseDTO */}
             {inviteResult && (
               <div style={{
                 background: 'var(--bg-elevated)',
@@ -337,9 +607,6 @@ function InviteStaffModal({ onClose }) {
                       ? new Date(inviteResult.expirationDate).toLocaleString()
                       : '—'
                   },
-                  // temporaryPassword is commented out in the backend DTO for now.
-                  // Uncomment this line when the backend exposes it:
-                  // { label: 'Temp Password', value: inviteResult.temporaryPassword || '—' },
                 ].map(({ label, value }, i, arr) => (
                   <div key={label} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -355,7 +622,6 @@ function InviteStaffModal({ onClose }) {
               </div>
             )}
 
-            {/* Info note — remove once email sending is confirmed working */}
             <div style={{
               fontSize: 12, color: 'var(--text-muted)',
               padding: '10px 12px', marginBottom: '1rem',
@@ -375,7 +641,6 @@ function InviteStaffModal({ onClose }) {
             </div>
           </div>
         ) : (
-          /* ── Form state ── */
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
