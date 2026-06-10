@@ -55,10 +55,10 @@ export default function SubscriptionPage() {
       // Run both calls in parallel
       const [subData, plansData] = await Promise.all([
         api.get('/subscription'),
-        api.get('/subscription/plans').catch(() => []), // graceful fallback
+        // api.get('/subscription/plans').catch(() => []), // graceful fallback
       ])
       setSub(subData)
-      setPlans(plansData || [])
+      // setPlans(plansData || [])
     } catch (err) {
       setError(err.message)
     } finally {
@@ -101,25 +101,25 @@ export default function SubscriptionPage() {
     return 'var(--success)'
   }
 
-  async function handleUpgrade(companyName, planCode) {
-    if (planCode === sub?.planType) return
-    if (planCode === 'ENTERPRISE') {
-      // Enterprise requires contacting sales — no self-serve upgrade
-      alert('Please contact our sales team to upgrade to Enterprise.')
-      return
-    }
-    setUpgrading(planCode)
-    try { 
-      await api.put(`/subscription/UpgradeSubscription/${companyName}/${planCode}`).catch(err => {
-        throw new Error(err.message || 'Upgrade failed')
-      })
-      // await loadAll()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setUpgrading(null)
-    }
-  }
+  // async function handleUpgrade(companyName, planCode) {
+  //   if (planCode === sub?.planType) return
+  //   if (planCode === 'ENTERPRISE') {
+  //     // Enterprise requires contacting sales — no self-serve upgrade
+  //     alert('Please contact our sales team to upgrade to Enterprise.')
+  //     return
+  //   }
+  //   setUpgrading(planCode)
+  //   try { 
+  //     await api.put(`/subscription/UpgradeSubscription/${companyName}/${planCode}`).catch(err => {
+  //       throw new Error(err.message || 'Upgrade failed')
+  //     })
+  //     // await loadAll()
+  //   } catch (err) {
+  //     setError(err.message)
+  //   } finally {
+  //     setUpgrading(null)
+  //   }
+  // }
 
   if (loading) {
     return <Layout><div className="empty-state"><Loader size={24} className="spin" /></div></Layout>
@@ -131,7 +131,7 @@ export default function SubscriptionPage() {
     <Layout>
       <div className="page-header">
         <h1>Subscription</h1>
-        <p>Your current plan, usage, and available upgrades.</p>
+        <p>Your current plan.</p>
       </div>
 
       {error && (
