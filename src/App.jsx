@@ -32,6 +32,9 @@ import './styles/profile.css'
 import './styles/admin.css'
 import ResetPasswordPage from './pages/auth/ResetPassword'
 import ForgotPasswordPage from './pages/auth/ForgotPassword'
+import BillingPage from './pages/owner/Billing'
+import BillingReturn from './pages/owner/BillingReturn'
+import AdminBillingHistory from './pages/admin/BillingHistory'
 
 export default function App() {
   return (
@@ -43,9 +46,13 @@ export default function App() {
             <Route path="/login"    element={<LoginPage />} />
             <Route path="/register"           element={<RegisterPage />} />
             <Route path="/accept-invitation"  element={<AcceptInvitationPage />} />
+            <Route path="/billing/return" element={<BillingReturn />} />
 
             {/* Root redirect — ProtectedRoute handles role-based redirect */}
             <Route path="/" element={<RootRedirect />} />
+
+            {/* Public billing return — no auth, used by CinetPay redirect */}
+            {/* <Route path="/billing/return" element={<BillingReturn />} /> */}
 
             {/* ── Owner routes ───────────────────────────── */}
             <Route path="/dashboard" element={
@@ -61,6 +68,12 @@ export default function App() {
             <Route path="/subscription" element={
               <ProtectedRoute allowedRoles={['OWNER']}>
                 <SubscriptionPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/billing" element={
+              <ProtectedRoute allowedRoles={['OWNER']}>
+                <BillingPage />
               </ProtectedRoute>
             } />
             <Route path="/profile" element={
@@ -88,6 +101,11 @@ export default function App() {
             <Route path="/admin/subscriptions" element={
               <ProtectedRoute allowedRoles={['ADMIN']}>
                 <AdminSubscriptions />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/billing-history" element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AdminBillingHistory />
               </ProtectedRoute>
             } />
             <Route path="/admin/health" element={

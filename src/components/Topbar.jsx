@@ -12,7 +12,7 @@ export default function Topbar({ onMenuClick }) {
       <button className="topbar-menu-btn" onClick={onMenuClick} aria-label="Open menu">
         <Menu size={20} />
       </button>
-
+{/* 
       <div className="topbar-search">
         <Search size={15} className="topbar-search-icon" />
         <input
@@ -29,7 +29,7 @@ export default function Topbar({ onMenuClick }) {
             <span className="topbar-notif-badge">{notifications}</span>
           )}
         </button>
-      </div>
+      </div> */}
     </header>
   )
 }

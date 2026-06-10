@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import {
   LayoutDashboard, Server, CreditCard, User,
-  Users, LogOut, Sun, Moon, Activity, ChevronRight, X
+  Users, LogOut, Sun, Moon, Activity, ChevronRight, X,
+  BadgeDollarSignIcon
 } from 'lucide-react'
 import './Sidebar.css'
 
@@ -12,6 +13,7 @@ const OWNER_NAV = [
   { to: '/instances',    icon: Server,           label: 'Instances'    },
   { to: '/subscription', icon: CreditCard,       label: 'Subscription' },
   { to: '/profile',      icon: User,             label: 'Profile'      },
+  { to: '/billing',      icon: BadgeDollarSignIcon, label: 'Billing'      }
 ]
 
 const ADMIN_NAV = [
@@ -19,6 +21,7 @@ const ADMIN_NAV = [
   { to: '/admin/instances',     icon: Server,           label: 'All Instances' },
   { to: '/admin/users',         icon: Users,            label: 'Users'         },
   { to: '/admin/subscriptions', icon: CreditCard,       label: 'Subscriptions' },
+  { to: '/admin/billing-history', icon: BadgeDollarSignIcon, label: 'Billing History' },
   { to: '/admin/health',        icon: Activity,         label: 'System Health' },
 ]
 

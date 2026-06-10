@@ -141,7 +141,7 @@ export default function SubscriptionPage() {
       )}
 
       {sub ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem', alignItems: 'start' }}>
 
           {/* ── Left: Current plan details ── */}
           <div>
@@ -248,87 +248,6 @@ export default function SubscriptionPage() {
               </button>
             </div>
           </div>
-
-          {/* ── Right: Available plans ── */}
-          <div>
-            <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: '1rem' }}>
-              {plans.length > 0 ? 'Available Plans' : 'Plan Options'}
-            </h2>
-
-            {plans.length === 0 ? (
-              <div className="card empty-state" style={{ padding: '2rem' }}>
-                <Zap size={28} style={{ opacity: 0.3 }} />
-                <p style={{ fontSize: 13 }}>Plan information unavailable.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {plans.map(plan => {
-                  const Icon = PLAN_ICONS[plan.code] || Zap
-                  const isCurrent  = plan.code === sub.planType
-                  const isUpgrading = upgrading === plan.code
-
-                  return (
-                    <div key={plan.code} className="card" style={{
-                      border: isCurrent ? '2px solid var(--accent)' : '1px solid var(--border)',
-                      padding: '1.25rem',
-                      transition: 'box-shadow var(--transition)',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        {/* Icon */}
-                        <div style={{
-                          width: 38, height: 38, borderRadius: 'var(--radius-md)',
-                          background: isCurrent ? 'var(--accent)' : 'var(--accent-soft)',
-                          color: isCurrent ? '#fff' : 'var(--accent)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
-                        }}>
-                          <Icon size={18} />
-                        </div>
-
-                        {/* Info */}
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontWeight: 600, fontSize: 14 }}>{plan.label}</span>
-                            {isCurrent && (
-                              <span className="badge badge-accent" style={{ fontSize: 10 }}>Current</span>
-                            )}
-                            {!plan.paid && !isCurrent && (
-                              <span className="badge badge-warning" style={{ fontSize: 10 }}>Trial</span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                            <Users size={11} style={{ display: 'inline', marginRight: 4 }} />
-                            Up to {plan.includedUsers} user{plan.includedUsers !== 1 ? 's' : ''}
-                            {plan.paid ? ' · Paid plan' : ' · Free trial'}
-                          </div>
-                        </div>
-
-                        {/* Action */}
-                        {isCurrent ? (
-                          <CheckCircle size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                        ) : (
-                          <button
-                            className="btn btn-primary btn-sm"
-                            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-                            onClick={() => handleUpgrade(sub.companyName, plan.code)}
-                            disabled={!!upgrading}
-                          >
-                            {isUpgrading
-                              ? <Loader size={13} className="spin" />
-                              : plan.code === 'ENTERPRISE'
-                                ? 'Contact Sales'
-                                : <><ArrowRight size={13} /> Upgrade</>
-                            }
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
         </div>
       ) : (
         !error && (

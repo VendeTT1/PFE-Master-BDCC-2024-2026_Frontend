@@ -46,13 +46,7 @@ const ODOO_MODULES = [
     icon: BarChart2,
     category: 'Finance',
   },
-  {
-    key: 'project',
-    label: 'Project',
-    description: 'Tasks, milestones, timesheets, and Kanban boards.',
-    icon: FileText,
-    category: 'Productivity',
-  },
+  
   {
     key: 'hr',
     label: 'Human Resources',
@@ -60,20 +54,7 @@ const ODOO_MODULES = [
     icon: Users,
     category: 'HR',
   },
-  {
-    key: 'website',
-    label: 'Website',
-    description: 'Drag-and-drop website builder with eCommerce support.',
-    icon: Globe,
-    category: 'Marketing',
-  },
-  {
-    key: 'maintenance',
-    label: 'Maintenance',
-    description: 'Equipment tracking, requests, and preventive schedules.',
-    icon: Wrench,
-    category: 'Operations',
-  },
+ 
   {
     key: 'saas_sso',
     label: 'SaaS SSO',
@@ -216,38 +197,12 @@ export default function InstancesPage() {
                 </div>
               )}
             </div>
-
-            <div className="ic-actions">
-              <button className="btn btn-secondary btn-sm"
-                disabled={instance.status === 'RUNNING' || !!actionLoading[instance.id]}
-                onClick={() => handleAction(instance.id, 'start')}>
-                <Play size={13} />
-                {actionLoading[instance.id] === 'start' ? 'Starting...' : 'Start'}
-              </button>
-              <button className="btn btn-secondary btn-sm"
-                disabled={instance.status === 'STOPPED' || !!actionLoading[instance.id]}
-                onClick={() => handleAction(instance.id, 'stop')}>
-                <Square size={13} />
-                {actionLoading[instance.id] === 'stop' ? 'Stopping...' : 'Stop'}
-              </button>
-              <button className="btn btn-secondary btn-sm"
-                disabled={!!actionLoading[instance.id]}
-                onClick={() => handleAction(instance.id, 'restart')}>
-                <RotateCcw size={13}
-                  className={actionLoading[instance.id] === 'restart' ? 'spin' : ''} />
-                {actionLoading[instance.id] === 'restart' ? 'Restarting...' : 'Restart'}
-              </button>
-              <button className="btn btn-primary btn-sm" style={{ marginLeft: 'auto' }}
-                onClick={() => handleOpenInstance(instance.id)}>
-                <ExternalLink size={13} /> Open
-              </button>
-            </div>
           </div>
 
-          <div className="card instance-card instance-card-add" onClick={() => setShowAdd(true)}>
+          {/* <div className="card instance-card instance-card-add" onClick={() => setShowAdd(true)}>
             <Plus size={24} style={{ marginBottom: 8 }} />
             <span>Deploy New Instance</span>
-          </div>
+          </div> */}
         </div>
       )}
 
@@ -283,7 +238,7 @@ function AddInstanceModal({ onClose, onAdded }) {
 
   function handleNextStep(e) {
     e.preventDefault()
-    if (!name.trim()) return
+    // if (!name.trim()) return
     setError('')
     setStep(2)
   }
@@ -402,7 +357,7 @@ function AddInstanceModal({ onClose, onAdded }) {
         {/* ── Step 1: Name ── */}
         {step === 1 && (
           <form onSubmit={handleNextStep}>
-            <div className="form-group">
+            {/* <div className="form-group">
               <label className="label">Instance name *</label>
               <input
                 className="input"
@@ -412,7 +367,7 @@ function AddInstanceModal({ onClose, onAdded }) {
                 required
                 autoFocus
               />
-            </div>
+            </div> */}
             <div className="modal-actions">
               <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
               <button type="submit" className="btn btn-primary">

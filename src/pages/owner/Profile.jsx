@@ -161,22 +161,24 @@ async function handlePasswordChange(e) {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="label">Company name</label>
-                    <input className="input" value={companyForm.name}
+                    <strong>Users:</strong> {company.name}
+                    {/* <input className="input" value={companyForm.name}
                       onChange={e => setCompanyForm(p => ({ ...p, name: e.target.value }))}
-                      placeholder="Acme Corp" required />
+                      placeholder="Acme Corp" required /> */}
                   </div>
                   <div className="form-group">
                     <label className="label">Region</label>
-                    <input className="input" value={companyForm.region}
+                    <strong>Users:</strong> {company.region}
+                    {/* <input className="input" value={companyForm.region}
                       onChange={e => setCompanyForm(p => ({ ...p, region: e.target.value }))}
-                      placeholder="US" />
+                      placeholder="US" /> */}
                   </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                {/* <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button type="submit" className="btn btn-primary" disabled={companyLoaderBtn}>
                     {companyLoaderBtn ? <><Loader size={14} className="spin" /> Saving…</> : 'Save Changes'}
                   </button>
-                </div>
+                </div> */}
               </form>
             )}
           </div>

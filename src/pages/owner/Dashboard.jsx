@@ -173,7 +173,7 @@ export default function OwnerDashboard() {
           </div>
 
           <div className="dic-actions">
-            <button
+            {/* <button
               className="btn btn-ghost btn-sm"
               title="Start"
               disabled={instance.status === 'RUNNING' || !!actionLoading[instance.id]}
@@ -199,9 +199,9 @@ export default function OwnerDashboard() {
                 size={13}
                 className={actionLoading[instance.id] === 'restart' ? 'spin' : ''}
               />
-            </button>
+            </button> */}
             <button
-              className="btn btn-secondary btn-sm"
+              className="btn btn-primary btn-sm"
               style={{ marginLeft: 'auto' }}
               onClick={() => handleOpenInstance(instance.id)}
             >
