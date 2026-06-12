@@ -10,13 +10,13 @@ import {
 
 // ── Module catalogue ──────────────────────────────────────────────────────
 const ODOO_MODULES = [
-  { key: 'sale', label: 'Sales', description: 'Quotations, orders, and customer pipeline management.', icon: ShoppingCart, category: 'Commerce' },
-  { key: 'purchase', label: 'Purchase', description: 'Vendor bills, RFQs, and procurement workflows.', icon: Package, category: 'Commerce' },
-  { key: 'inventory', label: 'Inventory', description: 'Stock moves, warehouses, and real-time traceability.', icon: Warehouse, category: 'Operations' },
-  { key: 'point_of_sale', label: 'Point of Sale', description: 'Retail checkout, sessions, and payment terminals.', icon: CreditCard, category: 'Commerce' },
-  { key: 'account', label: 'Accounting', description: 'Invoices, journals, reconciliation, and financial reports.', icon: BarChart2, category: 'Finance' },
-  { key: 'hr', label: 'Human Resources', description: 'Employees, contracts, and org-chart management.', icon: Users, category: 'HR' },
-  { key: 'saas_sso', label: 'SaaS SSO', description: 'Single sign-on integration for multi-tenant SaaS setups.', icon: Server, category: 'Platform', required: true },
+  { key: 'sale_management',    label: 'Sales',           description: 'Quotations, orders, and customer pipeline management.',        icon: ShoppingCart, category: 'Commerce'    },
+  { key: 'purchase',           label: 'Purchase',         description: 'Vendor bills, RFQs, and procurement workflows.',               icon: Package,      category: 'Commerce'    },
+  { key: 'stock',              label: 'Inventory',        description: 'Stock moves, warehouses, and real-time traceability.',         icon: Warehouse,    category: 'Operations'  },
+  { key: 'point_of_sale',      label: 'Point of Sale',    description: 'Retail checkout, sessions, and payment terminals.',            icon: CreditCard,   category: 'Commerce'    },
+  { key: 'account_accountant', label: 'Accounting',       description: 'Invoices, journals, reconciliation, and financial reports.',   icon: BarChart2,    category: 'Finance'     },
+  { key: 'hr',                 label: 'Human Resources',  description: 'Employees, contracts, and org-chart management.',              icon: Users,        category: 'HR'          },
+  { key: 'saas_sso',           label: 'SaaS SSO',         description: 'Single sign-on integration for multi-tenant SaaS setups.',    icon: Server,       category: 'Platform',   required: true },
 ]
 
 function StatusDot({ status }) {

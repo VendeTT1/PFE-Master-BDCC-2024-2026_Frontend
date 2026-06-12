@@ -160,15 +160,15 @@ async function handlePasswordChange(e) {
                 )}
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="label">Company name</label>
-                    <strong>Users:</strong> {company.name}
+                    <label className="label">Company name : <strong>{company.name}</strong></label>
+                    
                     {/* <input className="input" value={companyForm.name}
                       onChange={e => setCompanyForm(p => ({ ...p, name: e.target.value }))}
                       placeholder="Acme Corp" required /> */}
                   </div>
                   <div className="form-group">
-                    <label className="label">Region</label>
-                    <strong>Users:</strong> {company.region}
+                    <label className="label">Region : <strong>{company.region}</strong> </label>
+                    
                     {/* <input className="input" value={companyForm.region}
                       onChange={e => setCompanyForm(p => ({ ...p, region: e.target.value }))}
                       placeholder="US" /> */}
