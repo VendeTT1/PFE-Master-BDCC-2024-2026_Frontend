@@ -131,10 +131,17 @@ export default function RegisterPage() {
                   value={form.companyName} onChange={set('companyName')} required />
               </div>
               <div className="form-group">
-                <label className="label">Country *</label>
-                <input className="input" type="text" placeholder="MA"
-                  value={form.country} onChange={set('country')}
-                  maxLength={3} required />
+             <label className="label">Country *</label>
+                <select
+                  className="input"
+                  value={form.country}
+                  onChange={set('country')}
+                  required
+                >
+                  <option value="" disabled>Select a country</option>
+                  <option value="MAR">Morocco (MAR)</option>
+                  <option value="CIV">Ivory Coast (CIV)</option>
+                </select>
               </div>
             </div>
 
