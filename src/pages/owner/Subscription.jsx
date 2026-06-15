@@ -78,6 +78,7 @@ export default function SubscriptionPage() {
     return new Date(raw)
   }
 
+  const daysRemaining    = sub?.daysRemaining ?? null;
   const endDate   = parseDateSafe(sub?.endDate)
   const startDate = parseDateSafe(sub?.startDate)
 
@@ -190,10 +191,10 @@ export default function SubscriptionPage() {
                       : '—'
                   },
                   {
-                    label: 'Days remaining',
-                    value: daysLeft !== null
-                      ? <span style={{ color: daysLeft <= 3 ? 'var(--danger)' : 'inherit', fontWeight: 600 }}>
-                          {daysLeft} day{daysLeft !== 1 ? 's' : ''}
+                   label: 'Days remaining',
+                    value: daysRemaining !== null
+                      ? <span style={{ color: daysRemaining <= 3 ? 'var(--danger)' : 'inherit', fontWeight: 600 }}>
+                          {daysRemaining} day{daysRemaining !== 1 ? 's' : ''}
                         </span>
                       : '—'
                   },

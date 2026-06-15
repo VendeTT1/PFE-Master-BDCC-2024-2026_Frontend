@@ -69,9 +69,7 @@ export default function OwnerDashboard() {
 
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'there'
 
-  const daysLeft = subscription?.endDate
-    ? Math.max(0, Math.ceil((new Date(subscription?.endDate) - new Date()) / 86400000))
-    : null
+  const daysRemaining = subscription?.daysRemaining ?? null
 
   if (loading) return <Layout><div className="empty-state"><p>Loading dashboard...</p></div></Layout>
 
@@ -123,13 +121,13 @@ export default function OwnerDashboard() {
           <div className="stat-sub">{subscription?.status || 'No subscription'}</div>
         </div>
 
-        {daysLeft !== null && (
+        {daysRemaining !== null && (
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
               <Clock size={18} />
             </div>
             <div className="stat-label">Days Left</div>
-            <div className="stat-value">{daysLeft}</div>
+            <div className="stat-value">{daysRemaining}</div>
             <div className="stat-sub">
               Ends {new Date(subscription?.endDate).toLocaleDateString()}
             </div>
