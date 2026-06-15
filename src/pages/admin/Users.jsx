@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Layout from '../../components/Layout'
 import { api } from '../../utils/api'
-import { Search, UserPlus, Trash2, MoreHorizontal, Mail, X, Loader, AlertCircle } from 'lucide-react'
+import { Search, UserPlus, Trash2, MoreHorizontal, Mail, X, Loader, AlertCircle, PanelTopInactive } from 'lucide-react'
 
 const PAGE_SIZE = 10
 
@@ -45,11 +45,28 @@ export default function AdminUsers() {
     }
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm('Remove this user?')) return
+  async function handleSetInactive(id) {
+    if (!window.confirm('Are you sure you want to set this user to inactive?')) return
     try {
-      await api.del(`/admin/user/${id}`)
-      setUsers(prev => prev.filter(u => u.id !== id))
+      // Calls backend @DeleteMapping("/user/{id}")
+      await api.del(`/admin/inactive/user/${id}`)
+      
+      // Update UI state locally to visually change status to INACTIVE
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'INACTIVE' } : u))
+    } catch (err) {
+      setError(err.message)
+    }
+    setOpenMenu(null)
+  }
+
+  async function handleSetActive(id) {
+    if (!window.confirm('Are you sure you want to activate this user?')) return
+    try {
+      // Standard REST counterpart to activate an entity (adjust path if your backend varies)
+      await api.patch(`/admin/activate/user/${id}`)
+      
+      // Update UI state locally to visually change status to ACTIVE
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'ACTIVE' } : u))
     } catch (err) {
       setError(err.message)
     }
@@ -130,9 +147,16 @@ export default function AdminUsers() {
                             <button onClick={() => { setOpenMenu(null); alert(`Email: ${u.email}`) }}>
                               <Mail size={13} /> Email user
                             </button>
-                            <button onClick={() => handleDelete(u.id)} style={{ color: 'var(--danger)' }}>
-                              <Trash2 size={13} /> Remove
-                            </button>
+                            
+                            {u.status === 'ACTIVE' ? (
+                              <button onClick={() => handleSetInactive(u.id)} style={{ color: 'var(--danger)' }}>
+                                <PanelTopInactive size={13}/> Set Inactive
+                              </button>
+                            ) : (
+                              <button onClick={() => handleSetActive(u.id)} style={{ color: 'var(--success, #28a745)' }}>
+                                <UserPlus size={13}/> Activate User
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>

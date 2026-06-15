@@ -22,7 +22,7 @@ const ADMIN_NAV = [
   { to: '/admin/users',         icon: Users,            label: 'Users'         },
   { to: '/admin/subscriptions', icon: CreditCard,       label: 'Subscriptions' },
   { to: '/admin/billing-history', icon: BadgeDollarSignIcon, label: 'Billing History' },
-  { to: '/admin/health',        icon: Activity,         label: 'System Health' },
+  // { to: '/admin/health',        icon: Activity,         label: 'System Health' },
 ]
 
 // mobileOpen and onClose are passed in from Layout for mobile drawer behaviour
